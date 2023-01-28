@@ -73,6 +73,18 @@ fn possibilityWP(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64
 
     let pmoves = *wp>>7 & black & !RANK_8;
 }
+fn convert_move_to_bitboard(moves : &str) -> (u64,u64) {
+    let piece = &moves[0..2];
+    let move_to = &moves[2..];
+    let un = *&piece[0..2].chars().next().unwrap() as u64-96;
+    let deux = *&piece[0..2].chars().nth(1).unwrap() as u64-48;
+    let trois = *&move_to[0..2].chars().next().unwrap() as u64-96;
+    let quatre = *&move_to[0..2].chars().nth(1).unwrap() as u64-48;
+    let a = u64::pow(2, ((deux-1) *8 +  un-1 )as u32);
+    let b = u64::pow(2, ((quatre-1) *8 +  trois-1)as u32);
+
+    (a,b)
+}
 fn main() {
     println!("Hello, world!");
     let chess_board:[[char;8];8] = [
@@ -104,16 +116,7 @@ fn main() {
     //println!("{:b}", wr);
     //draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
 
-    let play_move = "c1e4";
-    let piece = &play_move[0..2];
-    let move_to = &play_move[2..];
-    let un = *&piece[0..2].chars().next().unwrap() as u64-96;
-    let deux = *&piece[0..2].chars().nth(1).unwrap() as u64-48;
-    let trois = *&move_to[0..2].chars().next().unwrap() as u64-96;
-    let quatre = *&move_to[0..2].chars().nth(1).unwrap() as u64-48;
-    
-    println!("{}{}{}{}", un, deux , trois , quatre);
-    let a = u64::pow(2, ((deux-1) *10 +  un-1 )as u32);
-    let b = u64::pow(2, ((quatre-1) *10 +  trois-1)as u32);
+    let play_move = "a2h8";
+    let (a,b) = convert_move_to_bitboard(play_move);
     println!("{:b} \n{:b}",a ,b);
 }
