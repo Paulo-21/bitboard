@@ -1,3 +1,7 @@
+static FILE_A:u64 = 72340172838076673;
+static RANK_8:u64 = 255;
+
+
 #[allow(clippy::too_many_arguments)]
 fn array_to_bitboard(chessboard : [[char;8]; 8], wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) {
     let mut i = 0;
@@ -64,6 +68,11 @@ fn draw_board(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, w
 fn convert_string_to_bitboard(binary:usize) -> u64 {
     u64::pow(2, (63-binary) as u32)
 }
+fn possibilityWP(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) {
+    let black = *bp & *bn & *bb & *br & *bq & *bk;
+
+    let pmoves = *wp>>7 & black & !RANK_8;
+}
 fn main() {
     println!("Hello, world!");
     let chess_board:[[char;8];8] = [
@@ -93,5 +102,18 @@ fn main() {
     array_to_bitboard(chess_board, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
 
     //println!("{:b}", wr);
-    draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+    //draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+
+    let play_move = "c1e4";
+    let piece = &play_move[0..2];
+    let move_to = &play_move[2..];
+    let un = *&piece[0..2].chars().next().unwrap() as u64-96;
+    let deux = *&piece[0..2].chars().nth(1).unwrap() as u64-48;
+    let trois = *&move_to[0..2].chars().next().unwrap() as u64-96;
+    let quatre = *&move_to[0..2].chars().nth(1).unwrap() as u64-48;
+    
+    println!("{}{}{}{}", un, deux , trois , quatre);
+    let a = u64::pow(2, ((deux-1) *10 +  un-1 )as u32);
+    let b = u64::pow(2, ((quatre-1) *10 +  trois-1)as u32);
+    println!("{:b} \n{:b}",a ,b);
 }
