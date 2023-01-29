@@ -2,7 +2,7 @@ use std::io;
 
 static FILE_A:u64 = 72340172838076673;
 static RANK_8:u64 = 255;
-//static RANK_1:u64 = 280375465082880;
+//static RANK_1:u64 = 18374686479671624000;
 
 
 #[allow(clippy::too_many_arguments)]
@@ -109,7 +109,7 @@ fn convert_move_to_bitboard(moves : &str) -> (u64,u64) {
 }
 
 fn compute_move_w(a:u64, b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> bool {
-    let black = *bp & *bn & *bb & *br & *bq & *bk;
+    let black = *bp | *bn | *bb | *br | *bq | *bk;
     if ((*wp) & a) != 0 {
         let mut p = (*wp) & a;
         
@@ -166,11 +166,10 @@ fn compute_move_w(a:u64, b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u
     }
 }
 fn compute_move_b(a:u64, b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> bool {
-    let black = *bp & *bn & *bb & *br & *bq & *bk;
-    let white = *wp & *wn & *wb & *wr & *wq & *wk;
+    //let black = *bp | *bn | *bb | *br | *bq | *bk;
+    let white = *wp | *wn | *wb | *wr | *wq | *wk;
     if ((*bp) & a) != 0 {
         let mut p = (*bp) & a;
-        
         let moves = possibility_bp(wp, wn, wb, wr, wq, wk, &mut p, bn, bb, br, bq, bk);
         println!("M : {:b}", moves);
 
@@ -228,7 +227,7 @@ fn main() {
     let chess_board:[[char;8];8] = [
         ['r','n','b','q','k','b','n','r'],
         ['p','p','p','p','p','p','p','p'],
-        [' ',' ',' ','P',' ',' ',' ',' '],
+        [' ',' ',' ',' ',' ',' ',' ',' '],
         [' ',' ',' ',' ',' ',' ',' ',' '],
         [' ',' ',' ',' ',' ',' ',' ',' '],
         [' ',' ',' ',' ',' ',' ',' ',' '],
@@ -255,7 +254,7 @@ fn main() {
     //let play_move = "e2e3";
     //let (a,b) = convert_move_to_bitboard(play_move);
     //println!("WP : {:b}", a&wp);
-    let moves = ["e2e3", "d7d6", "e3e4", "d6d5", "e4d5", "d5d4"];
+    let moves = ["e2e3", "d7d6", "e3e4", "d6d5", "e4d5"];
     draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
     for m in moves {
         //let mut buffer = String::new();
