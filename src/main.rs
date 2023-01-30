@@ -1,4 +1,5 @@
 use std::io;
+use std::time::{Duration, Instant};
 
 static FILE_A:u64 = 72340172838076673;
 static RANK_8:u64 = 255;
@@ -104,7 +105,7 @@ fn convert_move_to_bitboard(moves : &str) -> (u64,u64) {
     let quatre = *&move_to[0..2].chars().nth(1).unwrap() as u64-48;
     let a = u64::pow(2, ((deux-1) *8 +  un-1 )as u32);
     let b = u64::pow(2, ((quatre-1) *8 +  trois-1)as u32);
-    println!("a : {:b} \nb : {:b}", a, b);
+    //println!("a : {:b} \nb : {:b}", a, b);
     (a,b)
 }
 
@@ -114,7 +115,7 @@ fn compute_move_w(a:u64, b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u
         let mut p = (*wp) & a;
         
         let moves = possibility_wp(&mut p, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
-        println!("M : {:b}", moves);
+        //println!("M : {:b}", moves);
 
         if moves & b != 0 {
             (*wp) = (*wp) & (!a);
@@ -171,7 +172,7 @@ fn compute_move_b(a:u64, b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u
     if ((*bp) & a) != 0 {
         let mut p = (*bp) & a;
         let moves = possibility_bp(wp, wn, wb, wr, wq, wk, &mut p, bn, bb, br, bq, bk);
-        println!("M : {:b}", moves);
+        //println!("M : {:b}", moves);
 
         if moves & b != 0 {
             (*bp) &= !a;
@@ -256,6 +257,7 @@ fn main() {
     //println!("WP : {:b}", a&wp);
     let moves = ["e2e3", "d7d6", "e3e4", "d6d5", "e4d5"];
     draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+    let now = Instant::now();
     for m in moves {
         //let mut buffer = String::new();
         //io::stdin().read_line(&mut buffer).unwrap();
@@ -270,9 +272,9 @@ fn main() {
         white_to_play ^= response;
         
         //println!("{:b} \n{:b}",a ,b);
-        println!("{}", m);
-        println!("{}", response);
-        draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+        //println!("{}", m);
+        //println!("{}", response);
+        //draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
     }
-    
+    println!("{} micro seconde", now.elapsed().as_micros());
 }
