@@ -232,7 +232,7 @@ fn compute_move_b(a:u64, b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u
     }
 }
 fn main() {
-    println!("Hello, world!");
+
     let chess_board:[[char;8];8] = [
         ['r','n','b','q','k','b','n','r'],
         ['p','p','p','p','p','p','p','p'],
@@ -264,7 +264,7 @@ fn main() {
     //let (a,b) = convert_move_to_bitboard(play_move);
     //println!("WP : {:b}", a&wp);
     //let moves = ["e2e3", "d7d6", "e3e4", "d6d5", "e4d5"];
-    let moves = ["b1c3"];
+    let moves = ["b1c3","e7e6", "c3b1"];
     draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
     //let now = Instant::now();
     for m in moves {
