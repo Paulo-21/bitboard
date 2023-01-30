@@ -1,7 +1,12 @@
 use std::io;
-use std::time::{Duration, Instant};
+use std::time::{Instant};
 
 static FILE_A:u64 = 72340172838076673;
+static FILE_B:u64 = 144680345676153340;
+static FILE_H:u64 = 9259542123273814000;
+static FILE_G:u64 = 4629771061636907000;
+static FILE_AB:u64 = FILE_A | FILE_B;
+static FILE_GH:u64 = FILE_G | FILE_H;
 static RANK_8:u64 = 255;
 //static RANK_1:u64 = 18374686479671624000;
 
@@ -89,12 +94,30 @@ fn possibility_bp(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u6
     pmoves1 | pmoves2 | pmoves3
 }
 fn possibility_wn(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> u64 {
-    let black = *bp & *bn & *bb & *br & *bq & *bk;
-    let white = *wp & *wn & *wb & *wr & *wq & *wk;
-    let pmoves1 = *wp>>7 & black & !RANK_8;
-    let pmoves2 = *wp>>9 & black & !RANK_8;
-    let pmoves3 = *wp>>8 & !black & !white;
-    pmoves1 & pmoves2 & pmoves3
+    //let black = *bp | *bn | *bb | *br | *bq | *bk;
+    let white = *wp | *wn | *wb | *wr | *wq | *wk;
+    let noNoEa:u64 =  (*wn << 17) & !FILE_A ;
+    let noEaEa:u64 =  (*wn << 10) & !FILE_AB;
+    let soEaEa:u64 =  (*wn >>  6) & !FILE_AB;
+    let soSoEa:u64 =  (*wn >> 15) & !FILE_A ;
+    let noNoWe:u64 =  (*wn << 15) & !FILE_H ;
+    let noWeWe:u64 =  (*wn <<  6) & !FILE_GH;
+    let soWeWe:u64 =  (*wn >> 10) & !FILE_GH;
+    let soSoWe:u64 =  (*wn >> 17) & !FILE_H ;
+    (noNoEa | noEaEa | soEaEa | soSoEa | noNoWe | noWeWe | soWeWe | soSoWe) & !white
+}
+fn possibility_bn(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> u64 {
+    let black = *bp | *bn | *bb | *br | *bq | *bk;
+    //let white = *wp | *wn | *wb | *wr | *wq | *wk;
+    let noNoEa:u64 =  (*bn << 17) & !FILE_A ;
+    let noEaEa:u64 =  (*bn << 10) & !FILE_AB;
+    let soEaEa:u64 =  (*bn >>  6) & !FILE_AB;
+    let soSoEa:u64 =  (*bn >> 15) & !FILE_A ;
+    let noNoWe:u64 =  (*bn << 15) & !FILE_H ;
+    let noWeWe:u64 =  (*bn <<  6) & !FILE_GH;
+    let soWeWe:u64 =  (*bn >> 10) & !FILE_GH;
+    let soSoWe:u64 =  (*bn >> 17) & !FILE_H ;
+    (noNoEa | noEaEa | soEaEa | soSoEa | noNoWe | noWeWe | soWeWe | soSoWe) & !black
 }
 fn convert_move_to_bitboard(moves : &str) -> (u64,u64) {
     let piece = &moves[0..2];
@@ -111,56 +134,56 @@ fn convert_move_to_bitboard(moves : &str) -> (u64,u64) {
 
 fn compute_move_w(a:u64, b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> bool {
     let black = *bp | *bn | *bb | *br | *bq | *bk;
+    let mut moves= 0;
     if ((*wp) & a) != 0 {
         let mut p = (*wp) & a;
         
-        let moves = possibility_wp(&mut p, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
+        moves = possibility_wp(&mut p, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
         //println!("M : {:b}", moves);
-
-        if moves & b != 0 {
-            (*wp) = (*wp) & (!a);
-            (*wp) = (*wp) | b;
-            if black & b != 0 {
-                if *bp & b != 0 {
-                    *bp &= !b;
-                }
-                else if *bn & b != 0 {
-                    *bn &= !b;
-                }
-                else if *bb & b != 0 {
-                    *bb &= !b;
-                }
-                else if *br & b != 0 {
-                    *br &= !b;
-                }
-                else if *bq & b != 0 {
-                    *bq &= !b;
-                }
-            }
-            true
-        }
-        else {
-            false
-        }
     }
     else if *wn & a != 0 {
-        possibility_wn(wp, &mut (*wn & a), wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
-        false
+        moves = possibility_wn(wp, &mut (*wn & a), wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
+        
     }
     else if *wb & a != 0 {
-        false
+        
     }
     else if *wr & a != 0 {
-       false 
+        
     }
     else if *wq & a != 0 {
-        false
+        
     }
     else if *wk & a != 0 {
-        false
+        
     }
     else if *wn & a != 0 {
-        false
+        
+    }
+    else {
+        
+    }
+    if moves & b != 0 {
+        (*wp) = (*wp) & (!a);
+        (*wp) = (*wp) | b;
+        if black & b != 0 {
+            if *bp & b != 0 {
+                *bp &= !b;
+            }
+            else if *bn & b != 0 {
+                *bn &= !b;
+            }
+            else if *bb & b != 0 {
+                *bb &= !b;
+            }
+            else if *br & b != 0 {
+                *br &= !b;
+            }
+            else if *bq & b != 0 {
+                *bq &= !b;
+            }
+        }
+        true
     }
     else {
         false
@@ -276,5 +299,5 @@ fn main() {
         //println!("{}", response);
         //draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
     }
-    println!("{} micro seconde", now.elapsed().as_micros());
+    println!("{} nano seconde", now.elapsed().as_nanos());
 }
