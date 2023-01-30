@@ -121,12 +121,11 @@ fn possibility_bn(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u6
     (nonoea | noeaea | soeaea | sosoea | nonowe | nowewe | sowewe | sosowe) & !black
 }
 fn convert_move_to_bitboard(moves : &str) -> (u64,u64) {
-    let piece = &moves[0..2];
-    let move_to = &moves[2..];
-    let un = *&piece[0..2].chars().next().unwrap() as u64-96;
-    let deux = *&piece[0..2].chars().nth(1).unwrap() as u64-48;
-    let trois = *&move_to[0..2].chars().next().unwrap() as u64-96;
-    let quatre = *&move_to[0..2].chars().nth(1).unwrap() as u64-48;
+    let mut iter1 = moves[0..4].chars();
+    let un = iter1.next().unwrap() as u64-96;
+    let deux = iter1.next().unwrap() as u64-48;
+    let trois = iter1.next().unwrap() as u64-96;
+    let quatre = iter1.next().unwrap() as u64-48;
     let a = u64::pow(2, ((deux-1) *8 +  un-1 )as u32);
     let b = u64::pow(2, ((quatre-1) *8 +  trois-1)as u32);
     //println!("a : {:b} \nb : {:b}", a, b);
