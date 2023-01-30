@@ -136,36 +136,35 @@ fn convert_move_to_bitboard(moves : &str) -> (u64,u64) {
 fn compute_move_w(a:u64, b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> bool {
     let black = *bp | *bn | *bb | *br | *bq | *bk;
     let mut moves= 0;
+    let mut from: &mut u64 = &mut 0;
     if ((*wp) & a) != 0 {
         let mut p = (*wp) & a;
         moves = possibility_wp(&mut p, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
         //println!("M : {:b}", moves);
+        from = wp;
     }
     else if *wn & a != 0 {
         moves = possibility_wn(wp, &mut (*wn & a), wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
-        
+        from = wn;
     }
     else if *wb & a != 0 {
-        
+        from = wb;
     }
     else if *wr & a != 0 {
-        
+        from = wr;
     }
     else if *wq & a != 0 {
-        
+        from = wq;
     }
     else if *wk & a != 0 {
-        
-    }
-    else if *wn & a != 0 {
-        
+        from = wk;
     }
     else {
         
     }
     if moves & b != 0 {
-        (*wp) &= !a;
-        (*wp) |= b;
+        (*from) &= !a;
+        (*from) |= b;
         if black & b != 0 {
             if *bp & b != 0 { *bp &= !b; }
             else if *bn & b != 0 { *bn &= !b; }
