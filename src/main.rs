@@ -8,7 +8,6 @@ static FILE_G:u64 = 4629771061636907000;
 static FILE_AB:u64 = FILE_A | FILE_B;
 static FILE_GH:u64 = FILE_G | FILE_H;
 static RANK_8:u64 = 255;
-static mut OCCUPIED:u64 = 0;
 static RANK_MASK : [u64;8] = [
     255, 65280, 16711680, 4278190080, 1095216660480, 280375465082880, 71776119061217280, 18374686479671624000
 ];
@@ -168,7 +167,6 @@ fn compute_move_w(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, w
     let black = *bp | *bn | *bb | *br | *bq | *bk;
     let white = *wp | *wn | *wb | *wr | *wq | *wk;
     let square_a = a;
-    let square_b = b;
     a = 1<<a;
     b = 1<<b;
     let mut moves= 0;
@@ -228,7 +226,6 @@ fn compute_move_b(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, w
     let black = *bp | *bn | *bb | *br | *bq | *bk;
     let white = *wp | *wn | *wb | *wr | *wq | *wk;
     let square_a = a;
-    let square_b = b;
     a = 1<<a;
     b = 1<<b;
     let mut moves = 0;
