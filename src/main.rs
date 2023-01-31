@@ -8,9 +8,24 @@ static FILE_G:u64 = 4629771061636907000;
 static FILE_AB:u64 = FILE_A | FILE_B;
 static FILE_GH:u64 = FILE_G | FILE_H;
 static RANK_8:u64 = 255;
-//static RANK_1:u64 = 18374686479671624000;
-
-
+static mut OCCUPIED:u64 = 0;
+static RANK_MASK : [u64;8] = [
+    255, 65280, 16711680, 4278190080, 1095216660480, 280375465082880, 71776119061217280, 18374686479671624000
+];
+static FILE_MASKS : [u64;8] = [
+    72340172838076670, 144680345676153340, 289360691352306700, 578721382704613400,
+    1157442765409226800, 2314885530818453500, 4629771061636907000, 9259542123273814000
+];
+static DIAG_MASKS : [u64;15] = [
+    0x1, 0x102, 0x10204, 0x1020408, 0x102040810, 0x10204081020, 0x1020408102040,
+	0x102040810204080, 0x204081020408000, 0x408102040800000, 0x810204080000000,
+	0x1020408000000000, 0x2040800000000000, 0x4080000000000000, 0x8000000000000000
+];
+static ANTIDIAG_MASKS : [u64;15] = [
+    0x80, 0x8040, 0x804020, 0x80402010, 0x8040201008, 0x804020100804, 0x80402010080402,
+	0x8040201008040201, 0x4020100804020100, 0x2010080402010000, 0x1008040201000000,
+	0x804020100000000, 0x402010000000000, 0x201000000000000, 0x100000000000000
+];
 #[allow(clippy::too_many_arguments)]
 fn array_to_bitboard(chessboard : [[char;8]; 8], wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) {
     let mut i = 0;
@@ -75,7 +90,8 @@ fn draw_board(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, w
     }
 }
 fn convert_string_to_bitboard(binary:usize) -> u64 {
-    u64::pow(2, (binary) as u32)
+    //u64::pow(2, (binary) as u32)
+    1<<binary
 }
 fn possibility_wp(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> u64 {
     let black = *bp | *bn | *bb | *br | *bq | *bk;
@@ -120,26 +136,46 @@ fn possibility_bn(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u6
     let sosowe:u64 =  (*bn >> 17) & !FILE_H ;
     (nonoea | noeaea | soeaea | sosoea | nonowe | nowewe | sowewe | sosowe) & !black
 }
+
+fn hyperbola_quintessence(occupied : u64, mask: u64, mut number : u64) -> u64 {
+    number = 1<<number;
+    let mut forward = occupied & mask ;
+    let mut reverse = forward.swap_bytes();
+
+    forward = forward.wrapping_sub(number.wrapping_mul(2));
+    reverse = reverse.wrapping_sub(reverse.wrapping_mul(2)).swap_bytes();
+    
+    forward ^ reverse
+    //( - 2 * number) ^ ((occupied & mask).swap_bytes() - 2 * number.swap_bytes()).swap_bytes()
+    //(occupied - 2 * number) ^ (occupied.reverse_bits() - 2 * number.reverse_bits()).reverse_bits()
+}
+
 fn convert_move_to_bitboard(moves : &str) -> (u64,u64) {
     let mut iter1 = moves[0..4].chars();
     let un = iter1.next().unwrap() as u64-96;
     let deux = iter1.next().unwrap() as u64-48;
     let trois = iter1.next().unwrap() as u64-96;
     let quatre = iter1.next().unwrap() as u64-48;
-    let a = u64::pow(2, ((deux-1) *8 +  un-1 )as u32);
-    let b = u64::pow(2, ((quatre-1) *8 +  trois-1)as u32);
+    /*let a = u64::pow(2, ((deux-1) *8 +  un-1 )as u32);
+    let b = u64::pow(2, ((quatre-1) *8 +  trois-1)as u32);*/
     //println!("a : {:b} \nb : {:b}", a, b);
+    let a = (deux-1) *8 +  un-1 ;
+    let b = (quatre-1) *8 +  trois-1;
     (a,b)
 }
 
-fn compute_move_w(a:u64, b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> bool {
+fn compute_move_w(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> bool {
     let black = *bp | *bn | *bb | *br | *bq | *bk;
+    let white = *wp | *wn | *wb | *wr | *wq | *wk;
+    let square_a = a;
+    let square_b = b;
+    a = 1<<a;
+    b = 1<<b;
     let mut moves= 0;
     let mut from: &mut u64 = &mut 0;
     if ((*wp) & a) != 0 {
         let mut p = (*wp) & a;
         moves = possibility_wp(&mut p, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
-        //println!("M : {:b}", moves);
         from = wp;
     }
     else if *wn & a != 0 {
@@ -147,19 +183,23 @@ fn compute_move_w(a:u64, b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u
         from = wn;
     }
     else if *wb & a != 0 {
+        let occupied = black | white;
+        moves = diag_antid_moves(square_a, occupied);
         from = wb;
     }
     else if *wr & a != 0 {
+        let occupied = black | white;
+        moves = hv_moves(square_a, occupied);
         from = wr;
     }
     else if *wq & a != 0 {
+        let occupied = black | white;
+        moves = hv_moves(square_a, occupied) | diag_antid_moves(square_a, occupied);
         from = wq;
     }
     else if *wk & a != 0 {
-        from = wk;
-    }
-    else {
         
+        from = wk;
     }
     if moves & b != 0 {
         (*from) &= !a;
@@ -177,55 +217,62 @@ fn compute_move_w(a:u64, b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u
         false
     }
 }
-fn compute_move_b(a:u64, b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> bool {
-    //let black = *bp | *bn | *bb | *br | *bq | *bk;
+
+fn diag_antid_moves(square : u64, occupied : u64) -> u64 {
+    hyperbola_quintessence(occupied, DIAG_MASKS[((square/8) + (square%8)) as usize], square) | hyperbola_quintessence(occupied, ANTIDIAG_MASKS[((square/8)+7 - (square%8)) as usize], square)
+}
+fn hv_moves(square : u64, occupied : u64) -> u64 {
+    hyperbola_quintessence(occupied, FILE_MASKS[(square % 8) as usize], square) | hyperbola_quintessence(occupied, RANK_MASK[(square / 8) as usize], square)
+}
+fn compute_move_b(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> bool {
+    let black = *bp | *bn | *bb | *br | *bq | *bk;
     let white = *wp | *wn | *wb | *wr | *wq | *wk;
+    let square_a = a;
+    let square_b = b;
+    a = 1<<a;
+    b = 1<<b;
+    let mut moves = 0;
+    let mut from = &mut (0) ;
     if ((*bp) & a) != 0 {
         let mut p = (*bp) & a;
-        let moves = possibility_bp(wp, wn, wb, wr, wq, wk, &mut p, bn, bb, br, bq, bk);
+        moves = possibility_bp(wp, wn, wb, wr, wq, wk, &mut p, bn, bb, br, bq, bk);
+        from = bp;
         //println!("M : {:b}", moves);
+    }
 
-        if moves & b != 0 {
-            (*bp) &= !a;
-            (*bp) |= b;
-            if white & b != 0 {
-                if *wp & b != 0 {
-                    *wp &= !b;
-                }
-                else if *wn & b != 0 {
-                    *wn &= !b;
-                }
-                else if *wb & b != 0 {
-                    *wb &= !b;
-                }
-                else if *wr & b != 0 {
-                    *wr &= !b;
-                }
-                else if *wq & b != 0 {
-                    *wq &= !b;
-                }
-            }
-            true
+    else if *bn & a != 0 {
+        moves = possibility_bn(wp, &mut (*wn & a), wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
+        from = bn;
+    }
+    else if *bb & a != 0 {
+        let occupied = black | white;
+        moves = diag_antid_moves(square_a, occupied);
+        from = bb;
+    }
+    else if *br & a != 0 {
+        let occupied = black | white;
+        moves = hv_moves(square_a, occupied);
+        from = br;
+    }
+    else if *bq & a != 0 {
+        let occupied = black | white;
+        moves = hv_moves(square_a, occupied) | diag_antid_moves(square_a, occupied);
+        from = bq;
+    }
+    else if *bk & a != 0 {
+        
+    }
+    if moves & b != 0 {
+        (*from) &= !a;
+        (*from) |= b;
+        if white & b != 0 {
+            if *wp & b != 0 { *wp &= !b; }
+            else if *wn & b != 0 { *wn &= !b; }
+            else if *wb & b != 0 { *wb &= !b; }
+            else if *wr & b != 0 { *wr &= !b; }
+            else if *wq & b != 0 { *wq &= !b; }
         }
-        else {
-            false
-        }
-    }
-    else if *wn & a != 0 {
-        possibility_wn(wp, &mut (*wn & a), wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
-        false
-    }
-    else if *wb & a != 0 {
-        false
-    }
-    else if *wr & a != 0 {
-       false 
-    }
-    else if *wq & a != 0 {
-        false
-    }
-    else if *wk & a != 0 {
-        false
+        true
     }
     else {
         false
@@ -258,19 +305,26 @@ fn main() {
     let mut bk : u64 = 0;
     array_to_bitboard(chess_board, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
 
-    println!("{:b}", wp);
+    println!("{wp:b}");
     let mut white_to_play = true;
     //let play_move = "e2e3";
     //let (a,b) = convert_move_to_bitboard(play_move);
-    //println!("WP : {:b}", a&wp);
-    //let moves = ["e2e3", "d7d6", "e3e4", "d6d5", "e4d5"];
-    let moves = ["b1c3","e7e6", "c3b1"];
+    let moves = ["e2e3", "d7d6", "f1d3"];
+    //let moves = ["b1c3","g8f6", "c3b1"];
     draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
     //let now = Instant::now();
     for m in moves {
-        //let mut buffer = String::new();
-        //io::stdin().read_line(&mut buffer).unwrap();
-        let (a,b) = convert_move_to_bitboard(m);
+    //loop {
+        //let mut m = String::new();
+        if white_to_play {
+            println!("WHITE : ");
+        }
+        else {
+            println!("BLACK : ");
+        }
+        //io::stdin().read_line(&mut m).unwrap();
+        let (a,b) = convert_move_to_bitboard(&m);
+        println!("{a} et {b}");
         let response = if white_to_play {
             compute_move_w(a, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk)
         }

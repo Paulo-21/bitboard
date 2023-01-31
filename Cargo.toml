@@ -10,3 +10,4 @@ lto = true
 
 
 [dependencies]
+#bitintr = "0.3.0"
