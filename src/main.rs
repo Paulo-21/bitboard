@@ -243,17 +243,18 @@ fn compute_move_b(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, w
     }
     else if *bb & a != 0 {
         let occupied = black | white;
-        moves = diag_antid_moves(square_a, occupied);
+        moves = diag_antid_moves(square_a, occupied)& !black;
         from = bb;
     }
     else if *br & a != 0 {
         let occupied = black | white;
-        moves = hv_moves(square_a, occupied);
+        moves = hv_moves(square_a, occupied) & !black;
         from = br;
     }
     else if *bq & a != 0 {
         let occupied = black | white;
         moves = hv_moves(square_a, occupied) | diag_antid_moves(square_a, occupied);
+        moves &= !black;
         from = bq;
     }
     else if *bk & a != 0 {
