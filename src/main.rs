@@ -139,12 +139,12 @@ fn possibility_bn(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u6
 fn hyperbola_quintessence(occupied : u64, mask: u64, mut number : u64) -> u64 {
     number = 1<<number;
     let mut forward = occupied & mask ;
-    let mut reverse = forward.swap_bytes();
-
+    let mut reverse = forward.reverse_bits();
+//Pc200055
     forward = forward.wrapping_sub(number.wrapping_mul(2));
-    reverse = reverse.wrapping_sub(reverse.wrapping_mul(2)).swap_bytes();
-    
-    forward ^ reverse
+    reverse = reverse.wrapping_sub(reverse.wrapping_mul(2)).reverse_bits();
+    forward ^= reverse.reverse_bits();
+    forward & mask
     //( - 2 * number) ^ ((occupied & mask).swap_bytes() - 2 * number.swap_bytes()).swap_bytes()
     //(occupied - 2 * number) ^ (occupied.reverse_bits() - 2 * number.reverse_bits()).reverse_bits()
 }
@@ -306,7 +306,7 @@ fn main() {
     let mut white_to_play = true;
     //let play_move = "e2e3";
     //let (a,b) = convert_move_to_bitboard(play_move);
-    let moves = ["e2e3", "d7d6", "f1d3"];
+    let moves = ["e2e3", "d7d6", "f1d3", "d8g5"];
     //let moves = ["b1c3","g8f6", "c3b1"];
     draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
     //let now = Instant::now();
@@ -321,7 +321,7 @@ fn main() {
         }
         //io::stdin().read_line(&mut m).unwrap();
         let (a,b) = convert_move_to_bitboard(&m);
-        println!("{a} et {b}");
+        //println!("{a} et {b}");
         let response = if white_to_play {
             compute_move_w(a, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk)
         }
@@ -329,10 +329,11 @@ fn main() {
             compute_move_b(a, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk)
         };
         white_to_play ^= response;
-        
+        /*
         println!("{a:b} \n{b:b}");
         println!("{m}");
         println!("{response}");
+        */
         draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
     }
     //println!("{} nano seconde", now.elapsed().as_nanos());
