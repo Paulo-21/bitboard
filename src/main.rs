@@ -140,7 +140,7 @@ fn hyperbola_quintessence(occupied : u64, mask: u64, mut number : u64) -> u64 {
     number = 1<<number;
     let mut forward = occupied & mask ;
     let mut reverse = forward.reverse_bits();
-//Pc200055
+
     forward = forward.wrapping_sub(number.wrapping_mul(2));
     reverse = reverse.wrapping_sub(number.reverse_bits().wrapping_mul(2)).reverse_bits();
     forward ^= reverse.reverse_bits();
