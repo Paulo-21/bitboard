@@ -98,7 +98,8 @@ fn possibility_wp(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u6
     let pmoves1 = *wp<<7 & black & !RANK_8;
     let pmoves2 = *wp<<9 & black & !RANK_8;
     let pmoves3 = *wp<<8 & !(black | white);
-    pmoves1 | pmoves2 | pmoves3
+    let pmoves4 = *wp<<16 & !(black | white) & RANK_MASK[3];
+    pmoves1 | pmoves2 | pmoves3 | pmoves4
 }
 fn possibility_bp(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> u64 {
     let black = *bp | *bn | *bb | *br | *bq | *bk;
@@ -106,7 +107,8 @@ fn possibility_bp(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u6
     let pmoves1 = *bp>>7 & white ;//& !RANK_1;
     let pmoves2 = *bp>>9 & white ;//& !RANK_1;
     let pmoves3 = *bp>>8 & !(white | black);
-    pmoves1 | pmoves2 | pmoves3
+    let pmoves4 = *bp>>16 & !(black | white) & RANK_MASK[4];
+    pmoves1 | pmoves2 | pmoves3 | pmoves4
 }
 fn possibility_wn(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> u64 {
     //let black = *bp | *bn | *bb | *br | *bq | *bk;
@@ -308,15 +310,15 @@ fn main() {
     //let moves = ["b1c3","g8f6", "c3b1"];
     draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
     //let now = Instant::now();
-    for m in moves {
-        //loop {
-            //let mut m = String::new();
-            /*if white_to_play { println!("WHITE : "); }
-            else { println!("BLACK : "); }*/
+    //for m in moves {
+    loop {
+            let mut m = String::new();
+            if white_to_play { println!("WHITE : "); }
+            else { println!("BLACK : "); }
             
-            //io::stdin().read_line(&mut m).unwrap();
+            io::stdin().read_line(&mut m).unwrap();
              
-        let (a,b) = convert_move_to_bitboard(m);
+        let (a,b) = convert_move_to_bitboard(&m);
         let response = if white_to_play {
             compute_move_w(a, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk)
         }
@@ -325,8 +327,8 @@ fn main() {
         };
         white_to_play ^= response;
         
-        //draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+        draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
     }
     //println!("{} nano seconde", now.elapsed().as_nanos());
-    draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+    //draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
 }
