@@ -322,12 +322,12 @@ fn main() {
     //let now = Instant::now();
     //for m in moves {
     loop {
-            let mut m = String::new();
-            if white_to_play { println!("WHITE : "); }
-            else { println!("BLACK : "); }
-            
-            io::stdin().read_line(&mut m).unwrap();
-             
+        let mut m = String::new();
+        if white_to_play { println!("WHITE : "); }
+        else { println!("BLACK : "); }
+        
+        io::stdin().read_line(&mut m).unwrap();
+        
         let (a,b) = convert_move_to_bitboard(&m);
         let response = if white_to_play {
             compute_move_w(a, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk)
