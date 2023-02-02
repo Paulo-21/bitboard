@@ -95,19 +95,22 @@ fn convert_string_to_bitboard(binary:usize) -> u64 {
 fn possibility_wp(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> u64 {
     let black = *bp | *bn | *bb | *br | *bq | *bk;
     let white = *wp | *wn | *wb | *wr | *wq | *wk;
-    let pmoves1 = *wp<<7 & black & !RANK_8;
-    let pmoves2 = *wp<<9 & black & !RANK_8;
-    let pmoves3 = *wp<<8 & !(black | white);
-    let pmoves4 = *wp<<16 & !(black | white) & RANK_MASK[3];
+    let empty = !(black | white);
+    let pmoves1 = *wp<<7 & black & !RANK_MASK[7] & !FILE_MASKS[0];
+    let pmoves2 = *wp<<9 & black & !RANK_MASK[7] & !FILE_MASKS[7];
+    let pmoves3 = *wp<<8 & empty & !RANK_MASK[7];
+    let pmoves4 = *wp<<16 & empty & (empty<<8) & RANK_MASK[3];
     pmoves1 | pmoves2 | pmoves3 | pmoves4
 }
 fn possibility_bp(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> u64 {
     let black = *bp | *bn | *bb | *br | *bq | *bk;
     let white = *wp | *wn | *wb | *wr | *wq | *wk;
-    let pmoves1 = *bp>>7 & white ;//& !RANK_1;
-    let pmoves2 = *bp>>9 & white ;//& !RANK_1;
-    let pmoves3 = *bp>>8 & !(white | black);
-    let pmoves4 = *bp>>16 & !(black | white) & RANK_MASK[4];
+    let empty = !(black | white);
+
+    let pmoves1 = *bp>>7 & white & !RANK_MASK[0] & !FILE_MASKS[7];
+    let pmoves2 = *bp>>9 & white & !RANK_MASK[0] & !FILE_MASKS[0];
+    let pmoves3 = *bp>>8 & empty & !RANK_MASK[0];
+    let pmoves4 = *bp>>16 & empty & (empty>>8) & RANK_MASK[4];
     pmoves1 | pmoves2 | pmoves3 | pmoves4
 }
 fn possibility_wn(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> u64 {
@@ -136,6 +139,13 @@ fn possibility_bn(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u6
     let sowewe:u64 =  (*bn >> 10) & !FILE_GH;
     let sosowe:u64 =  (*bn >> 17) & !FILE_H ;
     (nonoea | noeaea | soeaea | sosoea | nonowe | nowewe | sowewe | sosowe) & !black
+}
+
+fn possibility_wk() -> u64 {
+    2
+}
+fn possibility_bk() -> u64 {
+    2
 }
 
 fn hyperbola_quintessence(occupied : u64, mask: u64, mut number : u64) -> u64 {
