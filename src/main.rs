@@ -303,21 +303,20 @@ fn main() {
     let mut bk : u64 = 0;
     array_to_bitboard(chess_board, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
 
-    println!("{wp:b}");
     let mut white_to_play = true;
     let moves = ["e2e3", "e7e6", "f1d3", "d8g5"];
     //let moves = ["b1c3","g8f6", "c3b1"];
     draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
-    let now = Instant::now();
+    //let now = Instant::now();
     for m in moves {
-    //loop {
-        //let mut m = String::new();
-        /*if white_to_play { println!("WHITE : "); }
-        else { println!("BLACK : "); }*/
-
-        //io::stdin().read_line(&mut m).unwrap();
+        //loop {
+            //let mut m = String::new();
+            /*if white_to_play { println!("WHITE : "); }
+            else { println!("BLACK : "); }*/
+            
+            //io::stdin().read_line(&mut m).unwrap();
+             
         let (a,b) = convert_move_to_bitboard(m);
-        //println!("{a} et {b}");
         let response = if white_to_play {
             compute_move_w(a, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk)
         }
@@ -328,6 +327,6 @@ fn main() {
         
         //draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
     }
-    println!("{} nano seconde", now.elapsed().as_nanos());
+    //println!("{} nano seconde", now.elapsed().as_nanos());
     draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
 }
