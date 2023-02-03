@@ -1,9 +1,4 @@
-use std::io;
-#[cfg(target_os = "linux")]
-use minstant;
-#[cfg(not(target_os = "linux"))]
-use std::time::Instant;
-
+use std::{io, time::Instant};
 
 static FILE_A:u64 = 72340172838076673;
 static FILE_B:u64 = 144680345676153340;
@@ -11,7 +6,6 @@ static FILE_H:u64 = 9259542123273814000;
 static FILE_G:u64 = 4629771061636907000;
 static FILE_AB:u64 = FILE_A | FILE_B;
 static FILE_GH:u64 = FILE_G | FILE_H;
-static RANK_8:u64 = 255;
 static RANK_MASK : [u64;8] = [
     255, 65280, 16711680, 4278190080, 1095216660480, 280375465082880, 71776119061217280, 18374686479671624000
 ];
@@ -75,22 +69,21 @@ fn draw_board(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, w
         }
     }
     let letter = 'a';
-    print!("    ");
+    print!("     ");
     for i in 0..8 {
-        print!("{} ", (letter as u8+i) as char);
+        print!("  {} ", (letter as u8+i) as char);
     }
-    print!("\n   ");
-    for _i in 0..8 {
-        print!("__");
-    }
-    println!();
+    print!("\n");
+    
     for (i, x) in chess_board.iter().enumerate() {
-        print!("{} | ", i+1);
+        println!("     ---------------------------------");
+        print!("   {} ", i+1);
         for c in x {
-            print!("{c} ");
+            print!("| {c} ");
         }
-        println!();
+        println!("|");
     }
+    println!("     ---------------------------------");
 }
 fn convert_string_to_bitboard(binary:usize) -> u64 {
     //u64::pow(2, (binary) as u32)
@@ -145,11 +138,17 @@ fn possibility_bn(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u6
     (nonoea | noeaea | soeaea | sosoea | nonowe | nowewe | sowewe | sosowe) & !black
 }
 
-fn possibility_wk() -> u64 {
-    2
+fn possibility_wk(mut wk : u64) -> u64 {
+    let mut attack = wk<<1 | wk>>1;
+    wk |= attack;
+    attack |= wk<<8 | wk>>8;
+    attack
 }
-fn possibility_bk() -> u64 {
-    2
+fn possibility_bk(mut bk : u64) -> u64 {
+    let mut attack = bk<<1 | bk>>1;
+    bk |= attack;
+    attack |= bk<<8 | bk>>8;
+    attack
 }
 
 fn hyperbola_quintessence(occupied : u64, mask: u64, mut number : u64) -> u64 {
@@ -171,9 +170,6 @@ fn convert_move_to_bitboard(moves : &str) -> (u64,u64) {
     let deux = iter1.next().unwrap() as u64-48;
     let trois = iter1.next().unwrap() as u64-96;
     let quatre = iter1.next().unwrap() as u64-48;
-    /*let a = u64::pow(2, ((deux-1) *8 +  un-1 )as u32);
-    let b = u64::pow(2, ((quatre-1) *8 +  trois-1)as u32);*/
-    //println!("a : {:b} \nb : {:b}", a, b);
     let a = (deux-1) *8 +  un-1 ;
     let b = (quatre-1) *8 +  trois-1;
     (a,b)
@@ -212,7 +208,7 @@ fn compute_move_w(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, w
         from = wq;
     }
     else if *wk & a != 0 {
-        
+        moves = possibility_wk(*wk) & !white;
         from = wk;
     }
     if moves & b != 0 {
@@ -250,9 +246,7 @@ fn compute_move_b(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, w
         let mut p = (*bp) & a;
         moves = possibility_bp(wp, wn, wb, wr, wq, wk, &mut p, bn, bb, br, bq, bk);
         from = bp;
-        //println!("M : {:b}", moves);
     }
-
     else if *bn & a != 0 {
         moves = possibility_bn(wp, &mut (*wn & a), wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
         from = bn;
@@ -274,7 +268,8 @@ fn compute_move_b(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, w
         from = bq;
     }
     else if *bk & a != 0 {
-        
+        moves = possibility_bk(*bk) & !black;
+        from = bk;
     }
     if moves & b != 0 {
         (*from) &= !a;
@@ -333,9 +328,7 @@ fn main() {
         io::stdin().read_line(&mut m).unwrap();
         
         let (a,b) = convert_move_to_bitboard(&m);
-        #[cfg(target_os = "linux")]
-        let now = minstant::Instant::now();
-        #[cfg(not(target_os = "linux"))]
+        
         let now = Instant::now();
         let response = if white_to_play {
             compute_move_w(a, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk)
