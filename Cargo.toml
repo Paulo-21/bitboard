@@ -9,4 +9,5 @@ edition = "2021"
 lto = true
 
 [dependencies]
+minstant = "0.1.2"
 #bitintr = "0.3.0"

@@ -1,5 +1,9 @@
 use std::io;
-use std::time::{Instant};
+#[cfg(target_os = "linux")]
+use minstant;
+#[cfg(not(target_os = "linux"))]
+use std::time::Instant;
+
 
 static FILE_A:u64 = 72340172838076673;
 static FILE_B:u64 = 144680345676153340;
@@ -316,7 +320,7 @@ fn main() {
     array_to_bitboard(chess_board, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
 
     let mut white_to_play = true;
-    let moves = ["e2e3", "e7e6", "f1d3", "d8g5"];
+    //let moves = ["e2e3", "e7e6", "f1d3", "d8g5"];
     //let moves = ["b1c3","g8f6", "c3b1"];
     draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
     //let now = Instant::now();
@@ -329,6 +333,10 @@ fn main() {
         io::stdin().read_line(&mut m).unwrap();
         
         let (a,b) = convert_move_to_bitboard(&m);
+        #[cfg(target_os = "linux")]
+        let now = minstant::Instant::now();
+        #[cfg(not(target_os = "linux"))]
+        let now = Instant::now();
         let response = if white_to_play {
             compute_move_w(a, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk)
         }
@@ -336,7 +344,7 @@ fn main() {
             compute_move_b(a, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk)
         };
         white_to_play ^= response;
-        
+        println!(" {} nano seconde", now.elapsed().as_nanos());
         draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
     }
     //println!("{} nano seconde", now.elapsed().as_nanos());
