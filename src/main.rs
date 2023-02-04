@@ -9,10 +9,16 @@ static FILE_GH:u64 = FILE_G | FILE_H;
 static RANK_MASK : [u64;8] = [
     255, 65280, 16711680, 4278190080, 1095216660480, 280375465082880, 71776119061217280, 18374686479671624000
 ];
+static FILE_MASKS : [u64;8] =
+    [
+        0x101010101010101, 0x202020202020202, 0x404040404040404, 0x808080808080808,
+        0x1010101010101010, 0x2020202020202020, 0x4040404040404040, 0x8080808080808080
+    ];
+/*
 static FILE_MASKS : [u64;8] = [
     72340172838076670, 144680345676153340, 289360691352306700, 578721382704613400,
     1157442765409226800, 2314885530818453500, 4629771061636907000, 9259542123273814000
-];
+];*/
 static DIAG_MASKS : [u64;15] = [
     0x1, 0x102, 0x10204, 0x1020408, 0x102040810, 0x10204081020, 0x1020408102040,
 	0x102040810204080, 0x204081020408000, 0x408102040800000, 0x810204080000000,
@@ -46,6 +52,17 @@ fn array_to_bitboard(chessboard : [[char;8]; 8], wp:&mut u64, wn:&mut u64, wb:&m
             i+=1;
         }
     }
+}
+fn draw_bitboard(bitboard : u64) {
+    let mut i = 0;
+    for _k in 0..8 {
+        println!();
+        for _p in 0..8 {
+            print!("{}", bitboard>>i & 1);
+            i+=1;
+        }
+    }
+    println!();
 }
 #[allow(clippy::too_many_arguments)]
 fn draw_board(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) {
@@ -154,11 +171,11 @@ fn possibility_bk(mut bk : u64) -> u64 {
 fn hyperbola_quintessence(occupied : u64, mask: u64, mut number : u64) -> u64 {
     number = 1<<number;
     let mut forward = occupied & mask ;
-    let mut reverse = forward.reverse_bits();
+    let mut reverse = forward.swap_bytes();
 
     forward = forward.wrapping_sub(number.wrapping_mul(2));
-    reverse = reverse.wrapping_sub(number.reverse_bits().wrapping_mul(2)).reverse_bits();
-    forward ^= reverse.reverse_bits();
+    reverse = reverse.wrapping_sub(number.swap_bytes().wrapping_mul(2));
+    forward ^= reverse.swap_bytes();
     forward & mask
     //( - 2 * number) ^ ((occupied & mask).swap_bytes() - 2 * number.swap_bytes()).swap_bytes()
     //(occupied - 2 * number) ^ (occupied.reverse_bits() - 2 * number.reverse_bits()).reverse_bits()
@@ -205,6 +222,7 @@ fn compute_move_w(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, w
     else if *wq & a != 0 {
         let occupied = black | white;
         moves = hv_moves(square_a, occupied) | diag_antid_moves(square_a, occupied);
+
         from = wq;
     }
     else if *wk & a != 0 {
@@ -229,10 +247,37 @@ fn compute_move_w(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, w
 }
 
 fn diag_antid_moves(square : u64, occupied : u64) -> u64 {
-    hyperbola_quintessence(occupied, DIAG_MASKS[((square/8) + (square%8)) as usize], square) | hyperbola_quintessence(occupied, ANTIDIAG_MASKS[((square/8)+7 - (square%8)) as usize], square)
+
+    let a = hyperbola_quintessence(occupied, DIAG_MASKS[((square/8) + (square%8)) as usize], square) | hyperbola_quintessence(occupied, ANTIDIAG_MASKS[((square/8)+7 - (square%8)) as usize], square);
+    draw_bitboard(a);
+    a
 }
 fn hv_moves(square : u64, occupied : u64) -> u64 {
-    hyperbola_quintessence(occupied, FILE_MASKS[(square % 8) as usize], square) | hyperbola_quintessence(occupied, RANK_MASK[(square / 8) as usize], square)
+    draw_bitboard(occupied);
+    /*
+    let number:u64 = 1<<square;
+    let mut forward = occupied & RANK_MASK[(square/8) as usize];
+    let mut reverse = forward.swap_bytes();
+
+    forward = forward.wrapping_sub(number.wrapping_mul(2));
+    reverse = reverse.wrapping_sub(number.swap_bytes().wrapping_mul(2));
+    forward ^= reverse.swap_bytes();
+    let a = forward;// & RANK_MASK[(square/8) as usize];
+    */
+    let a = rank_attack(occupied, 1<<square);
+    draw_bitboard(a);
+    println!();
+    let b = hyperbola_quintessence(occupied, FILE_MASKS[(square % 8) as usize], square);
+    draw_bitboard(b);
+    a | b
+}
+
+fn rank_attack(o : u64, r : u64) -> u64 {
+    let mut right :u64 = 0x0101010101010101;
+    let leftAttacks = (o ^ ((o | right) - 2*r) & !right);
+    right.swap_bytes();
+    //let rightAttacks = (o ^ ((o | right) - 2*r) & !right);
+    leftAttacks //| rightAttacks
 }
 fn compute_move_b(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> bool {
     let black = *bp | *bn | *bb | *br | *bq | *bk;
@@ -264,7 +309,8 @@ fn compute_move_b(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, w
     else if *bq & a != 0 {
         let occupied = black | white;
         moves = hv_moves(square_a, occupied) | diag_antid_moves(square_a, occupied);
-        moves &= !black;
+        draw_bitboard(moves);
+        //moves &= !black;
         from = bq;
     }
     else if *bk & a != 0 {
@@ -291,9 +337,9 @@ fn main() {
 
     let chess_board:[[char;8];8] = [
         ['r','n','b','q','k','b','n','r'],
-        ['p','p','p','p','p','p','p','p'],
+        [' ','p','p','p','p','p','p','p'],
         [' ',' ',' ',' ',' ',' ',' ',' '],
-        [' ',' ',' ',' ',' ',' ',' ',' '],
+        [' ',' ',' ','r',' ',' ',' ',' '],
         [' ',' ',' ',' ',' ',' ',' ',' '],
         [' ',' ',' ',' ',' ',' ',' ',' '],
         ['P','P','P','P','P','P','P','P'],
@@ -317,6 +363,7 @@ fn main() {
     let mut white_to_play = true;
     //let moves = ["e2e3", "e7e6", "f1d3", "d8g5"];
     //let moves = ["b1c3","g8f6", "c3b1"];
+    let moves = ["e2e4","e7e5", "f2f4", "d2d4", "d7d5", "f1e2", "d8d6" ];
     draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
     //let now = Instant::now();
     //for m in moves {
