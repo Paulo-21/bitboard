@@ -9,5 +9,6 @@ edition = "2021"
 lto = true
 
 [dependencies]
-minstant = "0.1.2"
+lazy_static = "1.4.0"
+#minstant = "0.1.2"
 #bitintr = "0.3.0"

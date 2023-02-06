@@ -1,5 +1,5 @@
 use std::{io, time::Instant};
-
+use lazy_static::lazy_static;
 static FILE_A:u64 = 72340172838076673;
 static FILE_B:u64 = 144680345676153340;
 static FILE_H:u64 = 9259542123273814000;
@@ -29,6 +29,33 @@ static ANTIDIAG_MASKS : [u64;15] = [
 	0x8040201008040201, 0x4020100804020100, 0x2010080402010000, 0x1008040201000000,
 	0x804020100000000, 0x402010000000000, 0x201000000000000, 0x100000000000000
 ];
+
+lazy_static! {
+    static ref FIRST_RANK_ATTACKS: [[u64; 8]; 64] = {
+        let mut first_rank_attacks = [[0; 8]; 64];
+        for o in 0..64 {
+            for f in 0..8 {
+                first_rank_attacks[o][f] = 0;
+
+                for i in (f + 1)..8 {
+                    first_rank_attacks[o][f] |= 1 << i;
+                    if (o << 1) & (1 << i) > 0 {
+                        break;
+                    }
+                }
+                for i in (0..f).rev() {
+                    first_rank_attacks[o][f] |= 1 << i;
+                    if (o << 1) & (1 << i) > 0 {
+                        break;
+                    }
+                }
+            }
+        }
+
+        first_rank_attacks
+    };
+}
+
 #[allow(clippy::too_many_arguments)]
 fn array_to_bitboard(chessboard : [[char;8]; 8], wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) {
     let mut i = 0;
@@ -63,6 +90,14 @@ fn draw_bitboard(bitboard : u64) {
         }
     }
     println!();
+}
+fn count_bit(mut bit : u64) -> i8 {
+    let mut count = 0;
+    while bit != 0 {
+        bit &= bit-1;
+        count+=1;
+    }
+    count
 }
 #[allow(clippy::too_many_arguments)]
 fn draw_board(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) {
@@ -155,16 +190,10 @@ fn possibility_bn(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u6
     (nonoea | noeaea | soeaea | sosoea | nonowe | nowewe | sowewe | sosowe) & !black
 }
 
-fn possibility_wk(mut wk : u64) -> u64 {
+fn possibility_k(mut wk : u64) -> u64 {
     let mut attack = wk<<1 | wk>>1;
     wk |= attack;
     attack |= wk<<8 | wk>>8;
-    attack
-}
-fn possibility_bk(mut bk : u64) -> u64 {
-    let mut attack = bk<<1 | bk>>1;
-    bk |= attack;
-    attack |= bk<<8 | bk>>8;
     attack
 }
 
@@ -180,7 +209,13 @@ fn hyperbola_quintessence(occupied : u64, mask: u64, mut number : u64) -> u64 {
     //( - 2 * number) ^ ((occupied & mask).swap_bytes() - 2 * number.swap_bytes()).swap_bytes()
     //(occupied - 2 * number) ^ (occupied.reverse_bits() - 2 * number.reverse_bits()).reverse_bits()
 }
-
+fn rank_attacks(occupied: u64, sq: u64) -> u64 {
+    
+    let f = sq & 7; // sq.file() as Bitboard;
+    let r = sq & !7; // (sq.rank() * 8) as Bitboard;
+    let o = (occupied >> (r + 1)) & 63;
+    FIRST_RANK_ATTACKS[o as usize][f as usize] << r
+}
 fn convert_move_to_bitboard(moves : &str) -> (u64,u64) {
     let mut iter1 = moves[0..4].chars();
     let un = iter1.next().unwrap() as u64-96;
@@ -226,7 +261,7 @@ fn compute_move_w(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, w
         from = wq;
     }
     else if *wk & a != 0 {
-        moves = possibility_wk(*wk) & !white;
+        moves = possibility_k(*wk) & !white;
         from = wk;
     }
     if moves & b != 0 {
@@ -253,31 +288,9 @@ fn diag_antid_moves(square : u64, occupied : u64) -> u64 {
     a
 }
 fn hv_moves(square : u64, occupied : u64) -> u64 {
-    draw_bitboard(occupied);
-    /*
-    let number:u64 = 1<<square;
-    let mut forward = occupied & RANK_MASK[(square/8) as usize];
-    let mut reverse = forward.swap_bytes();
-
-    forward = forward.wrapping_sub(number.wrapping_mul(2));
-    reverse = reverse.wrapping_sub(number.swap_bytes().wrapping_mul(2));
-    forward ^= reverse.swap_bytes();
-    let a = forward;// & RANK_MASK[(square/8) as usize];
-    */
-    let a = rank_attack(occupied, 1<<square);
-    draw_bitboard(a);
-    println!();
     let b = hyperbola_quintessence(occupied, FILE_MASKS[(square % 8) as usize], square);
-    draw_bitboard(b);
-    a | b
-}
-
-fn rank_attack(o : u64, r : u64) -> u64 {
-    let mut right :u64 = 0x0101010101010101;
-    let leftAttacks = (o ^ ((o | right) - 2*r) & !right);
-    right.swap_bytes();
-    //let rightAttacks = (o ^ ((o | right) - 2*r) & !right);
-    leftAttacks //| rightAttacks
+    
+    rank_attacks(occupied, square) | b
 }
 fn compute_move_b(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> bool {
     let black = *bp | *bn | *bb | *br | *bq | *bk;
@@ -314,7 +327,7 @@ fn compute_move_b(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, w
         from = bq;
     }
     else if *bk & a != 0 {
-        moves = possibility_bk(*bk) & !black;
+        moves = possibility_k(*bk) & !black;
         from = bk;
     }
     if moves & b != 0 {
