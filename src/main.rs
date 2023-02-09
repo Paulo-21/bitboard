@@ -217,6 +217,9 @@ fn rank_attacks(occupied: u64, sq: u64) -> u64 {
     FIRST_RANK_ATTACKS[o as usize][f as usize] << r
 }
 fn convert_move_to_bitboard(moves : &str) -> (u64,u64) {
+    /*if moves.len() != 4 {
+        return;
+    }*/
     let mut iter1 = moves[0..4].chars();
     let un = iter1.next().unwrap() as u64-96;
     let deux = iter1.next().unwrap() as u64-48;
@@ -257,7 +260,6 @@ fn compute_move_w(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, w
     else if *wq & a != 0 {
         let occupied = black | white;
         moves = hv_moves(square_a, occupied) | diag_antid_moves(square_a, occupied);
-
         from = wq;
     }
     else if *wk & a != 0 {
@@ -311,7 +313,7 @@ fn compute_move_b(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, w
     }
     else if *bb & a != 0 {
         let occupied = black | white;
-        moves = diag_antid_moves(square_a, occupied)& !black;
+        moves = diag_antid_moves(square_a, occupied) & !black;
         from = bb;
     }
     else if *br & a != 0 {
@@ -397,10 +399,10 @@ fn possibility_b( wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u6
 
 fn is_attacked(target_is_w : bool, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> bool {
     if target_is_w {
-        possibility_b(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk) & *wk != 0
+        possibility_w(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk) & *bk != 0
     }
     else {
-        possibility_w(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk) & *bk != 0
+        possibility_b(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk) & *wk != 0
     }
 }
 fn main() {
@@ -443,7 +445,6 @@ fn main() {
         else { println!("BLACK : "); }
         
         io::stdin().read_line(&mut m).unwrap();
-        
         let (a,b) = convert_move_to_bitboard(&m);
         
         let now = Instant::now();
