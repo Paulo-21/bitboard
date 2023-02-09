@@ -284,7 +284,7 @@ fn compute_move_w(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, w
 fn diag_antid_moves(square : u64, occupied : u64) -> u64 {
 
     let a = hyperbola_quintessence(occupied, DIAG_MASKS[((square/8) + (square%8)) as usize], square) | hyperbola_quintessence(occupied, ANTIDIAG_MASKS[((square/8)+7 - (square%8)) as usize], square);
-    draw_bitboard(a);
+    //draw_bitboard(a);
     a
 }
 fn hv_moves(square : u64, occupied : u64) -> u64 {
@@ -346,6 +346,63 @@ fn compute_move_b(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, w
         false
     }
 }
+fn possibility_w( wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> u64 {
+    let black = *bp | *bn | *bb | *br | *bq | *bk;
+    let white = *wp | *wn | *wb | *wr | *wq | *wk;
+    let occupied = black | white;
+    let mut attack = 0;
+    attack |= possibility_wp(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
+    attack |= possibility_wn(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
+    let devant = (*wb).leading_zeros();
+    let arriere = (*wb).trailing_zeros();
+
+    attack |= diag_antid_moves(arriere as u64, occupied);
+    if devant != arriere {
+        attack |= diag_antid_moves(devant as u64, occupied);
+    }
+    attack |= possibility_wn(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
+    let devant = (*wr).leading_zeros();
+    let arriere = (*wr).trailing_zeros();
+    attack |= hv_moves(arriere as u64, occupied);
+    if devant != arriere {
+        attack |= hv_moves(devant as u64, occupied);
+    }
+    attack |= hv_moves(wq.trailing_zeros() as u64, occupied) | diag_antid_moves(wq.trailing_zeros() as u64, occupied);
+    attack
+}
+fn possibility_b( wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> u64{
+    let black = *bp | *bn | *bb | *br | *bq | *bk;
+    let white = *wp | *wn | *wb | *wr | *wq | *wk;
+    let occupied = black | white;
+    let mut attack = 0;
+    attack |= possibility_bp(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
+    attack |= possibility_bn(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
+    let devant = (*bb).leading_zeros();
+    let arriere = (*bb).trailing_zeros();
+
+    attack |= diag_antid_moves(arriere as u64, occupied);
+    if devant != arriere {
+        attack |= diag_antid_moves(devant as u64, occupied);
+    }
+    attack |= possibility_bn(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
+    let devant = (*br).leading_zeros();
+    let arriere = (*br).trailing_zeros();
+    attack |= hv_moves(arriere as u64, occupied);
+    if devant != arriere {
+        attack |= hv_moves(devant as u64, occupied);
+    }
+    attack |= hv_moves(bq.trailing_zeros() as u64, occupied) | diag_antid_moves(bq.trailing_zeros() as u64, occupied);
+    attack
+}
+
+fn is_attacked(target_is_w : bool, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> bool {
+    if target_is_w {
+        possibility_b(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk) & *wk != 0
+    }
+    else {
+        possibility_w(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk) & *bk != 0
+    }
+}
 fn main() {
 
     let chess_board:[[char;8];8] = [
@@ -390,14 +447,22 @@ fn main() {
         let (a,b) = convert_move_to_bitboard(&m);
         
         let now = Instant::now();
+        let mut k_attacked = false;
         let response = if white_to_play {
-            compute_move_w(a, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk)
+            let a = compute_move_w(a, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+            k_attacked = is_attacked(true, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+            a
         }
         else {
-            compute_move_b(a, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk)
+            let a = compute_move_b(a, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+            k_attacked = is_attacked(false, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+            a
         };
         white_to_play ^= response;
         println!(" {} nano seconde", now.elapsed().as_nanos());
+        if k_attacked {
+            println!("CHECK");
+        }
         draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
     }
     //println!("{} nano seconde", now.elapsed().as_nanos());
