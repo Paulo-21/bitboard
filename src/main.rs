@@ -1,7 +1,7 @@
 use std::{io, fmt::Error};
 use lazy_static::lazy_static;
 #[cfg(target_os = "linux")]
-use minsant::Instant;
+use minstant::Instant;
 
 #[cfg(not(target_os = "linux"))]
 use std::time::Instant;
