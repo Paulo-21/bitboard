@@ -1,5 +1,11 @@
-use std::{io, time::Instant};
+use std::{io, fmt::Error};
 use lazy_static::lazy_static;
+#[cfg(target_os = "linux")]
+use minsant::Instant;
+
+#[cfg(not(target_os = "linux"))]
+use std::time::Instant;
+
 static FILE_A:u64 = 72340172838076673;
 static FILE_B:u64 = 144680345676153340;
 static FILE_H:u64 = 9259542123273814000;
@@ -405,8 +411,38 @@ fn is_attacked(target_is_w : bool, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mu
         possibility_b(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk) & *wk != 0
     }
 }
-fn main() {
+fn check_mate() -> bool {
+    true
+}
+fn undo_move(a :u64, b: u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> Result<(), Error> {
+    let from : &u64;
+    if ((*bp) & b) != 0 {
 
+        from = bp;
+    }
+    else if *bn & b != 0 {
+        
+        from = bn;
+    }
+    else if *bb & b != 0 {
+        
+        from = bb;
+    }
+    else if *br & b != 0 {
+        from = br;
+    }
+    else if *bq & b != 0 {
+        
+        from = bq;
+    }
+    else if *bk & b != 0 {
+
+        from = bk;
+    }
+    
+    Ok(())
+}
+fn main() {
     let chess_board:[[char;8];8] = [
         ['r','n','b','q','k','b','n','r'],
         ['p','p','p','p','p','p','p','p'],
