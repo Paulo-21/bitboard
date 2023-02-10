@@ -443,6 +443,8 @@ fn undo_move(a :u64, b: u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64,
     Ok(())
 }
 fn main() {
+    let now = Instant::now();
+    println!("Instant init : {} nano seconde", now.elapsed().as_nanos());
     let chess_board:[[char;8];8] = [
         ['r','n','b','q','k','b','n','r'],
         ['p','p','p','p','p','p','p','p'],
