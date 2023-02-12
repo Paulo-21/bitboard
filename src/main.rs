@@ -97,7 +97,7 @@ fn draw_bitboard(bitboard : u64) {
     }
     println!();
 }
-fn count_bit(mut bit : u64) -> i8 {
+pub fn count_bit(mut bit : u64) -> i8 {
     let mut count = 0;
     while bit != 0 {
         bit &= bit-1;
@@ -425,7 +425,6 @@ fn undo_move(a :u64, b: u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64,
         from = bn;
     }
     else if *bb & b != 0 {
-        
         from = bb;
     }
     else if *br & b != 0 {
@@ -445,6 +444,7 @@ fn undo_move(a :u64, b: u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64,
 fn main() {
     let now = Instant::now();
     println!("Instant init : {} nano seconde", now.elapsed().as_nanos());
+    
     let chess_board:[[char;8];8] = [
         ['r','n','b','q','k','b','n','r'],
         ['p','p','p','p','p','p','p','p'],
@@ -504,6 +504,7 @@ fn main() {
         }
         draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
     }
+    
     //println!("{} nano seconde", now.elapsed().as_nanos());
     //draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
 }
