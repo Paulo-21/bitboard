@@ -290,14 +290,12 @@ fn compute_move_w(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, w
 }
 
 fn diag_antid_moves(square : u64, occupied : u64) -> u64 {
-
     let a = hyperbola_quintessence(occupied, DIAG_MASKS[((square/8) + (square%8)) as usize], square) | hyperbola_quintessence(occupied, ANTIDIAG_MASKS[((square/8)+7 - (square%8)) as usize], square);
     //draw_bitboard(a);
     a
 }
 fn hv_moves(square : u64, occupied : u64) -> u64 {
     let b = hyperbola_quintessence(occupied, FILE_MASKS[(square % 8) as usize], square);
-    
     rank_attacks(occupied, square) | b
 }
 fn compute_move_b(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> bool {
@@ -411,6 +409,9 @@ fn is_attacked(target_is_w : bool, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mu
         possibility_b(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk) & *wk != 0
     }
 }
+fn get_legal_move() {
+    
+}
 fn check_mate() -> bool {
     true
 }
@@ -435,7 +436,7 @@ fn undo_move(a :u64, b: u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64,
         from = bq;
     }
     else if *bk & b != 0 {
-
+        
         from = bk;
     }
     
