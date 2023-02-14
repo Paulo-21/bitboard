@@ -6,6 +6,14 @@ use minstant::Instant;
 #[cfg(not(target_os = "linux"))]
 use std::time::Instant;
 
+enum Piece {
+    PAWN,
+    KNIGHT,
+    BISHOP,
+    ROOK,
+    QUEEN,
+    KING
+}
 static FILE_A:u64 = 72340172838076673;
 static FILE_B:u64 = 144680345676153340;
 static FILE_H:u64 = 9259542123273814000;
@@ -400,6 +408,9 @@ fn possibility_b( wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u6
     attack |= hv_moves(bq.trailing_zeros() as u64, occupied) | diag_antid_moves(bq.trailing_zeros() as u64, occupied);
     attack
 }
+fn copy_bitboard(wp:&u64, wn:&u64, wb:&u64, wr:&u64, wq:&u64, wk:&u64, bp:&u64, bn:&u64, bb:&u64, br:&u64, bq:&u64, bk:&u64) -> (u64, u64, u64, u64, u64, u64, u64, u64, u64, u64, u64, u64){
+    (*wp, *wn, *wb, *wr, *wq, *wk, *bp, *bn, *bb, *br, *bq, *bk)
+}
 
 fn is_attacked(target_is_w : bool, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> bool {
     if target_is_w {
@@ -409,8 +420,54 @@ fn is_attacked(target_is_w : bool, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mu
         possibility_b(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk) & *wk != 0
     }
 }
-fn get_legal_move() {
+fn get_legal_move(side_w : bool, wp1:&mut u64, wn1:&mut u64, wb1:&mut u64, wr1:&mut u64, wq1:&mut u64, wk1:&mut u64, bp1:&mut u64, bn1:&mut u64, bb1:&mut u64, br1:&mut u64, bq1:&mut u64, bk1:&mut u64) -> Vec<(u64,u64)> {
+    let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
+    let black = *bp1 | *bn1 | *bb1 | *br1 | *bq1 | *bk1;
+    let white = *wp1 | *wn1 | *wb1 | *wr1 | *wq1 | *wk1;
+    let occupied = black | white;
+    if side_w {
+        //Pions Possibility
+        let mut devant = wp.leading_zeros() as u64;
+        let mut derriere = wp.leading_zeros() as u64;
+        let possi_wp = possibility_w(&mut devant, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+
+        //Knight
+        devant = wn.leading_zeros() as u64;
+        derriere = wn.leading_zeros() as u64;
+        let possi_wn = possibility_wn(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+        let possi_wn2 = if devant != derriere {
+            possibility_wn(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk)
+        } else { 0 };
+
+        //Bishop
+        devant = wb.leading_zeros() as u64;
+        derriere = wb.leading_zeros() as u64;
+        let possi_wb = diag_antid_moves(devant, occupied);
+        let possi_wb2 = if devant != derriere {
+            diag_antid_moves(derriere, occupied)
+        }
+        else { 0 };
+
+        //Rook
+        devant = wr.leading_zeros() as u64;
+        derriere = wr.leading_zeros() as u64;
+        let possi_wr = hv_moves(devant, occupied);
+        let possi_wr2 = if devant != derriere {
+            hv_moves(derriere, occupied)
+        } else { 0 };
+
+        //Queen
+        let possi_wq = hv_moves(wq.leading_zeros() as u64, occupied) | diag_antid_moves(wq.leading_zeros() as u64, occupied);
+        
+        //King
+        let possi_wk = possibility_k(wk);
+
+    }
+    else {
+
+    }
     
+    Vec::from([(6,8)])
 }
 fn check_mate() -> bool {
     true
