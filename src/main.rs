@@ -336,7 +336,7 @@ fn compute_move_b(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, w
     else if *bq & a != 0 {
         let occupied = black | white;
         moves = hv_moves(square_a, occupied) | diag_antid_moves(square_a, occupied);
-        draw_bitboard(moves);
+        //draw_bitboard(moves);
         //moves &= !black;
         from = bq;
     }
@@ -457,7 +457,8 @@ fn get_legal_move(side_w : bool, wp1:&mut u64, wn1:&mut u64, wb1:&mut u64, wr1:&
         } else { 0 };
 
         //Queen
-        let possi_wq = hv_moves(wq.leading_zeros() as u64, occupied) | diag_antid_moves(wq.leading_zeros() as u64, occupied);
+        let queen_pos = wq.leading_zeros();
+        let possi_wq = hv_moves(queen_pos as u64, occupied) | diag_antid_moves(queen_pos as u64, occupied);
         
         //King
         let possi_wk = possibility_k(wk);
