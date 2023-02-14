@@ -5,7 +5,7 @@ use minstant::Instant;
 
 #[cfg(not(target_os = "linux"))]
 use std::time::Instant;
-
+use bitintr::{Tzcnt, Lzcnt};
 enum Piece {
     PAWN,
     KNIGHT,
@@ -367,21 +367,25 @@ fn possibility_w( wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u6
     let mut attack = 0;
     attack |= possibility_wp(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
     attack |= possibility_wn(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
-    let devant = (*wb).leading_zeros();
-    let arriere = (*wb).trailing_zeros();
+    let devant = (*wb).clz();
+    let arriere = (*wb).tzcnt();
+    //let devant = (*wb).leading_zeros();
+    //let arriere = (*wb).trailing_zeros();
 
     attack |= diag_antid_moves(arriere as u64, occupied);
     if devant != arriere {
         attack |= diag_antid_moves(devant as u64, occupied);
     }
     attack |= possibility_wn(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
+    let devant = (*wr).clz();
+    let arriere = (*wr).tzcnt();
     let devant = (*wr).leading_zeros();
     let arriere = (*wr).trailing_zeros();
     attack |= hv_moves(arriere as u64, occupied);
     if devant != arriere {
         attack |= hv_moves(devant as u64, occupied);
     }
-    attack |= hv_moves(wq.trailing_zeros() as u64, occupied) | diag_antid_moves(wq.trailing_zeros() as u64, occupied);
+    attack |= hv_moves(wq.tzcnt() as u64, occupied) | diag_antid_moves(wq.tzcnt() as u64, occupied);
     attack
 }
 fn possibility_b( wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> u64{
