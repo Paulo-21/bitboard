@@ -6,6 +6,7 @@ use minstant::Instant;
 #[cfg(not(target_os = "linux"))]
 use std::time::Instant;
 use bitintr::{Tzcnt, Lzcnt, Andn};
+#[derive(Debug)]
 enum Piece {
     PAWN,
     KNIGHT,
@@ -375,26 +376,26 @@ fn possibility_w( wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u6
     let occupied = black | white;
     let mut attack = 0;
     attack |= possibility_wp(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
-    attack |= possibility_wn(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
-    let devant = (*wb).lzcnt();
-    let arriere = (*wb).tzcnt();
-    //let devant = (*wb).leading_zeros();
-    //let arriere = (*wb).trailing_zeros();
-
-    attack |= diag_antid_moves(arriere as u64, occupied);
+    //attack |= possibility_wn(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
+    //let devant = (*wb).lzcnt();
+    //let arriere = (*wb).tzcnt();
+    let devant = 63-(*wb).leading_zeros();
+    let arriere = (*wb).trailing_zeros();
+    
+    attack |= diag_antid_moves(arriere as u64, occupied) & !white;
     if devant != arriere {
-        attack |= diag_antid_moves(devant as u64, occupied);
+        attack |= diag_antid_moves(devant as u64, occupied) & !white;
     }
-    attack |= possibility_wn(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
-    let devant = (*wr).clz();
-    let arriere = (*wr).tzcnt();
-    let devant = (*wr).leading_zeros();
+    
+    /*let devant = (*wr).clz();
+    let arriere = (*wr).tzcnt();*/
+    let devant = 63 - (*wr).leading_zeros();
     let arriere = (*wr).trailing_zeros();
-    attack |= hv_moves(arriere as u64, occupied);
+    attack |= hv_moves(arriere as u64, occupied) & !white;
     if devant != arriere {
-        attack |= hv_moves(devant as u64, occupied);
+        attack |= hv_moves(devant as u64, occupied) ;
     }
-    attack |= hv_moves(wq.tzcnt() as u64, occupied) | diag_antid_moves(wq.tzcnt() as u64, occupied);
+    attack |= (hv_moves(wq.tzcnt() as u64, occupied) | diag_antid_moves(wq.tzcnt() as u64, occupied)) & !white;
     attack
 }
 fn possibility_b( wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> u64{
@@ -403,22 +404,22 @@ fn possibility_b( wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u6
     let occupied = black | white;
     let mut attack = 0;
     attack |= possibility_bp(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
-    attack |= possibility_bn(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
-    let devant = (*bb).leading_zeros();
+    attack |= possibility_bn(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk) & !black;
+    let devant = 63-(*bb).leading_zeros();
     let arriere = (*bb).trailing_zeros();
 
-    attack |= diag_antid_moves(arriere as u64, occupied);
+    attack |= diag_antid_moves(arriere as u64, occupied) & !black;
     if devant != arriere {
-        attack |= diag_antid_moves(devant as u64, occupied);
+        attack |= diag_antid_moves(devant as u64, occupied) & !black;
     }
-    attack |= possibility_bn(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
-    let devant = (*br).leading_zeros();
+    //attack |= possibility_bn(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
+    let devant = 63-(*br).leading_zeros();
     let arriere = (*br).trailing_zeros();
-    attack |= hv_moves(arriere as u64, occupied);
+    attack |= hv_moves(arriere as u64, occupied) & !black;
     if devant != arriere {
-        attack |= hv_moves(devant as u64, occupied);
+        attack |= hv_moves(devant as u64, occupied) & !black;
     }
-    attack |= hv_moves(bq.trailing_zeros() as u64, occupied) | diag_antid_moves(bq.trailing_zeros() as u64, occupied);
+    attack |= (hv_moves(bq.trailing_zeros() as u64, occupied) | diag_antid_moves(bq.trailing_zeros() as u64, occupied) ) & !black;
     attack
 }
 fn copy_bitboard(wp:&u64, wn:&u64, wb:&u64, wr:&u64, wq:&u64, wk:&u64, bp:&u64, bn:&u64, bb:&u64, br:&u64, bq:&u64, bk:&u64) -> (u64, u64, u64, u64, u64, u64, u64, u64, u64, u64, u64, u64){
@@ -427,26 +428,28 @@ fn copy_bitboard(wp:&u64, wn:&u64, wb:&u64, wr:&u64, wq:&u64, wk:&u64, bp:&u64, 
 
 fn is_attacked(target_is_w : bool, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> bool {
     if target_is_w {
-        possibility_w(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk) & *bk != 0
+        let attacks = possibility_w(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk);
+        //draw_bitboard(attacks);
+        attacks & *bk != 0
     }
     else {
         possibility_b(wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk) & *wk != 0
     }
 }
-fn get_legal_move(side_w : bool, wp1:&mut u64, wn1:&mut u64, wb1:&mut u64, wr1:&mut u64, wq1:&mut u64, wk1:&mut u64, bp1:&mut u64, bn1:&mut u64, bb1:&mut u64, br1:&mut u64, bq1:&mut u64, bk1:&mut u64) -> Vec<u64> {
-    let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
+fn get_legal_move(side_w : bool, wp1:&mut u64, wn1:&mut u64, wb1:&mut u64, wr1:&mut u64, wq1:&mut u64, wk1:&mut u64, bp1:&mut u64, bn1:&mut u64, bb1:&mut u64, br1:&mut u64, bq1:&mut u64, bk1:&mut u64) -> Vec<(u64, Piece)> {
+    //let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
     let black = *bp1 | *bn1 | *bb1 | *br1 | *bq1 | *bk1;
     let white = *wp1 | *wn1 | *wb1 | *wr1 | *wq1 | *wk1;
     let occupied = black | white;
-    let mut legal_moves = Vec::<u64>::new();
-    if side_w {
+    let mut legal_moves = Vec::<(u64, Piece)>::new();
+    if side_w { //White Possibility
         //Pions Possibility
-        let mut devant = wp.leading_zeros() as u64;
+        let mut devant = 0;
         let mut derriere = 0;
-        let possi_wp = possibility_w(&mut devant, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
-        
+        /*let possi_wp = possibility_w(&mut devant, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+        */
         //Knight
-        //let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
+        let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
         let mut wn_test = *wn1;
         while wn_test != 0 {
             let piece = wn_test.tzcnt();
@@ -459,7 +462,7 @@ fn get_legal_move(side_w : bool, wp1:&mut u64, wn1:&mut u64, wb1:&mut u64, wr1:&
                 compute_move_w(piece, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
                 let is_check = is_attacked(true, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
                 if !is_check {
-                    legal_moves.push((piece<<8) + b);
+                    legal_moves.push(((piece<<8) + b, Piece::KNIGHT));
                 }
                 wn_possi = wn_possi & wn_possi - 1;
             }
@@ -477,12 +480,11 @@ fn get_legal_move(side_w : bool, wp1:&mut u64, wn1:&mut u64, wb1:&mut u64, wr1:&
                 compute_move_w(piece, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
                 let is_check = is_attacked(true, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
                 if !is_check {
-                    legal_moves.push((piece<<8) + b);
+                    legal_moves.push(((piece<<8) + b, Piece::BISHOP));
                 }
                 wb_possi = wb_possi & wb_possi - 1;
             }
         }
-
         //Rook
         devant = wr.leading_zeros() as u64;
         derriere = wr.leading_zeros() as u64;
@@ -497,12 +499,65 @@ fn get_legal_move(side_w : bool, wp1:&mut u64, wn1:&mut u64, wb1:&mut u64, wr1:&
         
         //King
         let possi_wk = possibility_k(wk);
-
     }
-    else {
+    else { //Black Possiblity
+        //Pions Possibility
+        let mut devant = 0;
+        let mut derriere = 0;
+        /*let possi_wp = possibility_w(&mut devant, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+        */
+        //Knight
+        let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
+        let mut bn_test = *bn1;
+        while bn_test != 0 {
+            let piece = bn_test.trailing_zeros() as u64;
+            let mut bn_extract = ((1 as u64) << piece) as u64;
+            bn_test = bn_test & bn_test-1;
+            let mut bn_possi = possibility_wn(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn_extract, &mut bb, &mut br, &mut bq, &mut bk) & !black;
+            while bn_possi != 0 {
+                let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
+                let b = bn_possi.trailing_zeros() as u64;
+                compute_move_b(piece, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+                let is_check = is_attacked(false, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+                if !is_check {
+                    legal_moves.push(((piece<<8) + b, Piece::KNIGHT));
+                }
+                bn_possi = bn_possi & bn_possi - 1;
+            }
+        }
+        
+        //Bishop
+        let mut bb_test = *bb1;
+        while bb_test != 0 {
+            let piece = bb_test.tzcnt();
+            bb_test = bb_test & bb_test - 1;
+            let mut bb_possi = diag_antid_moves(piece, occupied) & !black;
+            while bb_possi != 0 {
+                let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
+                let b = bb_possi.tzcnt();
+                compute_move_w(piece, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+                let is_check = is_attacked(false, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+                if !is_check {
+                    legal_moves.push(((piece<<8) + b, Piece::BISHOP));
+                }
+                bb_possi = bb_possi & bb_possi - 1;
+            }
+        }
+        //Rook
+        devant = br.leading_zeros() as u64;
+        derriere = br.trailing_zeros() as u64;
+        let possi_br = hv_moves(devant, occupied);
+        let possi_br2 = if devant != derriere {
+            hv_moves(derriere, occupied)
+        } else { 0 };
 
+        //Queen
+        let queen_pos = bq.leading_zeros();
+        let possi_bq = hv_moves(queen_pos as u64, occupied) | diag_antid_moves(queen_pos as u64, occupied);
+        
+        //King
+        let possi_bk = possibility_k(bk);
     }
-    
     legal_moves
 }
 fn check_mate() -> bool {
@@ -535,11 +590,11 @@ fn undo_move(a :u64, b: u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64,
     
     Ok(())
 }
-fn print_custum_move(a_move : u64) {
-    let a = a_move>>8;
-    let b = a_move & 255;
+fn print_custum_move(a_move : (u64,Piece)) {
+    let a = a_move.0>>8;
+    let b = a_move.0 & 255;
     //println!("{a} {b}");
-    println!("{}{}", convert_square_to_move(a), convert_square_to_move(b));
+    println!("{}{} {:?}", convert_square_to_move(a), convert_square_to_move(b), a_move.1);
 }
 fn main() {
     let now = Instant::now();
@@ -573,44 +628,44 @@ fn main() {
     let mut white_to_play = true;
     //let moves = ["e2e3", "e7e6", "f1d3", "d8g5"];
     //let moves = ["b1c3","g8f6", "c3b1"];
-    let moves = ["e2e4","e7e5", "f2f4", "d2d4", "d7d5", "f1e2", "d8d6" ];
+    //let moves = ["e2e4","e7e5", "f2f4", "d2d4", "d7d5", "f1e2", "d8d6" ];
+    //let moves = ["e2e4", "e7e5", "f1e2"];
+    let moves = ["e2e4", "e7e5", "d1h5", "b8c6", "h5f7"]; //Just Check
+    //let moves = ["e2e4", "e7e5", "f1c4", "b8c6", "d1h5", "g8f6", "h5f7"]; //Bergé
     draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
     //let now = Instant::now();
-    //for m in moves {
-    loop {
-        let mut m = String::new();
+    for m in moves {
+    //loop {
+        //let mut m = String::new();
         if white_to_play { println!("WHITE : "); }
         else { println!("BLACK : "); }
         
-        io::stdin().read_line(&mut m).unwrap();
+        //io::stdin().read_line(&mut m).unwrap();
         let (a,b) = convert_move_to_bitboard(&m);
         
         let now = Instant::now();
         let mut k_attacked = false;
-        let mut legal;
+        
         let response = if white_to_play {
-            let a = compute_move_w(a, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
-            k_attacked = is_attacked(true, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
-            
-            
-            a
+            compute_move_w(a, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk)
         }
         else {
-            let a = compute_move_b(a, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
-            k_attacked = is_attacked(false, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
-            //legal = get_legal_move(false, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
-            
-            a
+            compute_move_b(a, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk)
         };
+
+        k_attacked = is_attacked(white_to_play, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+        let legal = get_legal_move(white_to_play, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
         white_to_play ^= response;
         println!(" {} nano seconde", now.elapsed().as_nanos());
-        legal = get_legal_move(true, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
         for x in legal {
             print_custum_move(x);
-
         }
         if k_attacked {
-            println!("CHECK");
+            print!("CHECK");
+            if get_legal_move(white_to_play, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk).len() == 0 {
+                print!(" MATE");
+            }
+            println!();
         }
         draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
     }
