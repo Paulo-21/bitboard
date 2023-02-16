@@ -258,7 +258,7 @@ fn compute_move_w(mut a:u64, mut b:u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, w
     let black = *bp | *bn | *bb | *br | *bq | *bk;
     let white = *wp | *wn | *wb | *wr | *wq | *wk;
     let square_a = a;
-    a = 1<<a;
+    a = (1 as u64)<<a;
     b = 1<<b;
     let mut moves= 0;
     let mut from: &mut u64 = &mut 0;
@@ -556,7 +556,17 @@ fn get_legal_move(side_w : bool, wp1:&mut u64, wn1:&mut u64, wb1:&mut u64, wr1:&
         let possi_bq = hv_moves(queen_pos as u64, occupied) | diag_antid_moves(queen_pos as u64, occupied);
         
         //King
-        let possi_bk = possibility_k(bk);
+        let mut possi_bk = possibility_k(bk) & !black;
+        while possi_bk != 0 {
+                let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
+                let b = possi_bk.tzcnt();
+                compute_move_w(bk.trailing_zeros() as u64, b, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+                let is_check = is_attacked(false, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+                if !is_check {
+                    legal_moves.push((((bk.trailing_zeros() as u64)<<8) + b, Piece::KING));
+                }
+                possi_bk = possi_bk & possi_bk - 1;
+            }
     }
     legal_moves
 }
@@ -654,8 +664,8 @@ fn main() {
         };
 
         k_attacked = is_attacked(white_to_play, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
-        let legal = get_legal_move(white_to_play, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
         white_to_play ^= response;
+        let legal = get_legal_move(white_to_play, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
         println!(" {} nano seconde", now.elapsed().as_nanos());
         for x in legal {
             print_custum_move(x);
