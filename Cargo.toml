@@ -10,6 +10,5 @@ lto = true
 
 [dependencies]
 lazy_static = "1.4.0"
-#quanta = "0.10.1"
 minstant = "0.1.2"
 bitintr = "0.3.0"
