@@ -27,6 +27,17 @@ struct Game {
     bqueen_rook_never_move : bool,
     bking_never_move : bool,
 }
+impl Game {
+    fn occupied(&self) -> u64 {
+        self.wp | self.wn | self.wb | self.wr | self.wq | self.wk | self.bp | self.bn | self.bb | self.br | self.bq | self.bk
+    }
+    fn white(&self) -> u64 {
+        self.wp | self.wn | self.wb | self.wr | self.wq | self.wk
+    }
+    fn black(&self) -> u64 {
+        self.bp | self.bn | self.bb | self.br | self.bq | self.bk
+    }
+}
 
 fn convert_square_to_move(a_move : u64) -> String{
     let b = (a_move / 8) as u8;
@@ -272,7 +283,8 @@ fn compute_move_w(mut a:u64, mut b:u64, game : &mut Game) -> bool {
     let occupied = black | white;
     
     let square_a = a;
-    a = (1 as u64)<<a;
+    let square_b = b;
+    a = 1<<a;
     b = 1<<b;
     let mut moves= 0;
     let mut from: &mut u64 = &mut 0;
@@ -300,6 +312,35 @@ fn compute_move_w(mut a:u64, mut b:u64, game : &mut Game) -> bool {
         from = &mut game.wq;
     }
     else if game.wk & a != 0 {
+        println!("{square_b} {} {} {}", game.wking_never_move, game.wking_rook_never_move, game.wqueen_rook_never_move);
+        if square_b == 2 { // Grand roque
+            //check if the king and the rook has never move
+            if game.wking_never_move && game.wking_rook_never_move && (black | white) & (2u64.pow(1) + 2u64.pow(2)) == 0 && possibility_b(game) & (2u64.pow(58) + 2u64.pow(57)) == 0 {
+                game.wking_never_move = false;
+                game.wking_rook_never_move = false;
+                //Do grand roque
+                game.wk &= !a;
+                game.wk |= b;
+                game.wr &= !(2u64.pow(0));
+                game.wr |= 2u64.pow(3);
+                return true;
+            }
+            return false;
+            //check if no piece is between
+            //check if square between isn't attacked
+        }
+        else if square_b == 6 { //Petit Roque
+            if game.wking_never_move && game.wqueen_rook_never_move && (black | white) & (2u64.pow(6) + 2u64.pow(5)) == 0 && possibility_b(game) & (2u64.pow(6) + 2u64.pow(5)) == 0 {
+                game.wking_never_move = false;
+                game.wqueen_rook_never_move = false;
+                game.wk &= !a;
+                game.wk |= b;
+                game.wr &= !(2u64.pow(7));
+                game.wr |= 2u64.pow(5);
+                return true;
+            }
+            return false;
+        }
         moves = possibility_k(game.wk) & !white;
         from = &mut game.wk;
     }
@@ -335,6 +376,7 @@ fn compute_move_b(mut a : u64, mut b: u64, game :&mut Game) -> bool {
     let black = game.bp | game.bn | game.bb | game.br | game.bq | game.bk;
     let white = game.wp | game.wn | game.wb | game.wr | game.wq | game.wk;
     let square_a = a;
+    let square_b = b;
     a = 1<<a;
     b = 1<<b;
     let mut moves = 0;
@@ -363,26 +405,36 @@ fn compute_move_b(mut a : u64, mut b: u64, game :&mut Game) -> bool {
         from = &mut game.bq;
     }
     else if game.bk & a != 0 {
-        /*if b == 62 { // Grand roque
+        println!("{square_b} {} {} {}", game.bking_never_move, game.bking_rook_never_move, game.bqueen_rook_never_move);
+        if square_b == 58 { // Grand roque
             //check if the king and the rook has never move
-            if *king_never_move && *kr_never_move {
-                *king_never_move = false;
-                *kr_never_move = false;
+            if game.bking_never_move && game.bking_rook_never_move && (black | white) & (2u64.pow(58) + 2u64.pow(57)) == 0 && possibility_w(game) & (2u64.pow(58) + 2u64.pow(57)) == 0 {
+                println!("Grand roque");
+                game.bking_never_move = false;
+                game.bking_rook_never_move = false;
+                //Do grand roque
+                game.bk &= !a;
+                game.bk |= b;
+                game.br &= !(2u64.pow(56));
+                game.br |= 2u64.pow(59);
                 return true;
             }
             return false;
             //check if no piece is between
             //check if square between isn't attacked
-            
         }
-        else if b == 58 {
-            if *king_never_move && *qr_never_move {
-                *king_never_move = false;
-                *qr_never_move = false;
+        else if square_b == 62 { //Petit Roque
+            if game.bking_never_move && game.bqueen_rook_never_move && (black | white) & (2u64.pow(61) + 2u64.pow(62)) == 0 && possibility_w(game) & (2u64.pow(61) + 2u64.pow(62)) == 0 {
+                game.bking_never_move = false;
+                game.bqueen_rook_never_move = false;
+                game.bk &= !a;
+                game.bk |= b;
+                game.br &= !(2u64.pow(63));
+                game.br |= 2u64.pow(61);
                 return true;
             }
             return false;
-        }*/
+        }
         moves = possibility_k(game.bk) & !black;
         from = &mut game.bk;
     }
@@ -723,8 +775,8 @@ fn main() {
     let mut game = Game {
         wp, wn, wb, wr, wq, wk,
         bp, bn, bb, br, bq, bk,
-        wking_never_move : false, wqueen_rook_never_move : false, wking_rook_never_move : false,
-        bking_never_move : false, bqueen_rook_never_move : false, bking_rook_never_move : false,
+        wking_never_move : true, wqueen_rook_never_move : true, wking_rook_never_move : true,
+        bking_never_move : true, bqueen_rook_never_move : true, bking_rook_never_move : true,
     };
     
     let mut white_to_play = true;
@@ -733,7 +785,8 @@ fn main() {
     //let moves = ["e2e4","e7e5", "f2f4", "d2d4", "d7d5", "f1e2", "d8d6" ];
     //let moves = ["e2e4", "e7e5", "f1e2"];
     //let moves = ["e2e4", "e7e5", "d1h5", "b8c6", "h5f7"]; //Just Check
-    let moves = ["e2e4", "e7e5", "f1c4", "b8c6", "d1h5", "g8f6", "h5f7"]; //Bergé
+    //let moves = ["e2e4", "e7e5", "f1c4", "b8c6", "d1h5", "g8f6", "h5f7"]; //Bergé
+    let moves = ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5", "e1g1", "g8f6", "d1e2", "e8g8"]; // Test ROQUE
     draw_board(&game);
     //let now = Instant::now();
     for m in moves {
