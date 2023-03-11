@@ -668,7 +668,7 @@ pub fn get_legal_move(side_w : bool, game : &Game) -> Vec<(u64, Piece)> {
                 compute_move_w(piece, b, &mut game1);
                 let is_check = is_attacked(true, &game1);
                 if !is_check {
-                    legal_moves.push(((piece<<8) + b, Piece::BISHOP));
+                    legal_moves.push(((piece<<8) + b, Piece::ROOK));
                 }
                 wr_possi = wr_possi & (wr_possi - 1);
             }
@@ -775,7 +775,7 @@ pub fn get_legal_move(side_w : bool, game : &Game) -> Vec<(u64, Piece)> {
                 compute_move_b(piece, b, &mut game1);
                 let is_check = is_attacked(false, &game1);
                 if !is_check {
-                    legal_moves.push(((piece<<8) + b, Piece::BISHOP));
+                    legal_moves.push(((piece<<8) + b, Piece::ROOK));
                 }
                 br_possi = br_possi & (br_possi - 1);
             }
