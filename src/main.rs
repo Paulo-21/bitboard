@@ -1,4 +1,4 @@
-//use std::{io};
+use std::{io};
 use std::env;
 use lazy_static::lazy_static;
 #[cfg(target_os = "linux")]
@@ -7,8 +7,21 @@ use minstant::Instant;
 #[cfg(not(target_os = "linux"))]
 use std::time::Instant;
 use bitintr::{Tzcnt, Lzcnt, Andn};
+use std::default;
+
+static BASICSTART_CHESS_BOARD:[[char;8];8] = [
+        ['r','n','b','q','k','b','n','r'],
+        ['p','p','p','p','p','p','p','p'],
+        [' ',' ',' ',' ',' ',' ',' ',' '],
+        [' ',' ',' ',' ',' ',' ',' ',' '],
+        [' ',' ',' ',' ',' ',' ',' ',' '],
+        [' ',' ',' ',' ',' ',' ',' ',' '],
+        ['P','P','P','P','P','P','P','P'],
+        ['R','N','B','Q','K','B','N','R'],
+    ];
+
 #[derive(Debug)]
-enum Piece {
+pub enum Piece {
     PAWN,
     KNIGHT,
     BISHOP,
@@ -17,9 +30,10 @@ enum Piece {
     KING
 }
 #[derive(Clone, Copy)]
-struct Game {
-    wp : u64, wn : u64, wb : u64, wr : u64, wq : u64, wk : u64,
-    bp : u64, bn : u64, bb : u64, br : u64, bq : u64, bk : u64,
+pub struct Game {
+    pub wp : u64, pub wn : u64, pub wb : u64, pub wr : u64, pub wq : u64, pub wk : u64,
+    pub bp : u64, pub bn : u64, pub bb : u64, pub br : u64, pub bq : u64, pub bk : u64,
+    pub white_to_play : bool,
     wking_rook_never_move : bool,
     wqueen_rook_never_move : bool,
     wking_never_move : bool,
@@ -28,21 +42,27 @@ struct Game {
     bking_never_move : bool,
 }
 impl Game {
-    fn occupied(&self) -> u64 {
+    pub fn occupied(&self) -> u64 {
         self.wp | self.wn | self.wb | self.wr | self.wq | self.wk | self.bp | self.bn | self.bb | self.br | self.bq | self.bk
     }
-    fn white(&self) -> u64 {
+    pub fn white(&self) -> u64 {
         self.wp | self.wn | self.wb | self.wr | self.wq | self.wk
     }
-    fn black(&self) -> u64 {
+    pub fn black(&self) -> u64 {
         self.bp | self.bn | self.bb | self.br | self.bq | self.bk
+    }
+    
+}
+impl Default for Game {
+    fn default() -> Self { 
+        get_game_from_basicpos()
     }
 }
 
-fn convert_square_to_move(a_move : u64) -> String{
+pub fn convert_square_to_move(a_move : u64) -> String{
     let b = (a_move / 8) as u8;
     let a:u8 = (a_move % 8) as u8;
-    let f = ('a' as u8 + a ) as char;
+    let f = (b'a' + a ) as char;
     let mut a = String::from(f);
     a.push((48 + b+1 ) as char );
     a
@@ -104,7 +124,7 @@ lazy_static! {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn array_to_bitboard(chessboard : [[char;8]; 8], wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) {
+pub fn array_to_bitboard(chessboard : [[char;8]; 8], wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) {
     let mut i = 0;
     for v in chessboard {
         for c in v {
@@ -127,7 +147,31 @@ fn array_to_bitboard(chessboard : [[char;8]; 8], wp:&mut u64, wn:&mut u64, wb:&m
         }
     }
 }
-fn _draw_bitboard(bitboard : u64) {
+pub fn get_game_from_basicpos() -> Game {
+    let mut wp : u64 = 0;
+    let mut wn : u64 = 0;
+    let mut wb : u64 = 0;
+    let mut wr : u64 = 0;
+    let mut wq : u64 = 0;
+    let mut wk : u64 = 0;
+    let mut bp : u64 = 0;
+    let mut bn : u64 = 0;
+    let mut bb : u64 = 0;
+    let mut br : u64 = 0;
+    let mut bq : u64 = 0;
+    let mut bk : u64 = 0;
+
+    array_to_bitboard(BASICSTART_CHESS_BOARD, &mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
+    
+    Game {
+        wp, wn, wb, wr, wq, wk,
+        bp, bn, bb, br, bq, bk,
+        white_to_play : true,
+        wking_never_move : true, wqueen_rook_never_move : true, wking_rook_never_move : true,
+        bking_never_move : true, bqueen_rook_never_move : true, bking_rook_never_move : true,
+    }
+}
+pub fn _draw_bitboard(bitboard : u64) {
     let mut i = 0;
     for _k in 0..8 {
         println!();
@@ -138,7 +182,7 @@ fn _draw_bitboard(bitboard : u64) {
     }
     println!();
 }
-pub fn count_bit(mut bit : u64) -> i8 {
+pub fn _count_bit(mut bit : u64) -> i8 {
     let mut count = 0;
     while bit != 0 {
         bit &= bit-1;
@@ -147,7 +191,7 @@ pub fn count_bit(mut bit : u64) -> i8 {
     count
 }
 #[allow(clippy::too_many_arguments)]
-fn draw_board(game : &Game) {
+pub fn draw_board(game : &Game) {
     let mut chess_board:[[char;8];8] = [[' ';8];8];
     let mut i = 0;
     for x in &mut chess_board {
@@ -172,7 +216,7 @@ fn draw_board(game : &Game) {
     for i in 0..8 {
         print!("  {} ", (letter as u8+i) as char);
     }
-    print!("\n");
+    println!();
     
     for (i, x) in chess_board.iter().enumerate() {
         println!("     ---------------------------------");
@@ -184,11 +228,11 @@ fn draw_board(game : &Game) {
     }
     println!("     ---------------------------------");
 }
-fn convert_string_to_bitboard(binary:usize) -> u64 {
+pub fn convert_string_to_bitboard(binary:usize) -> u64 {
     //u64::pow(2, (binary) as u32)
     1<<binary
 }
-/*fn possibility_wp(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> u64 {
+/*pub fn possibility_wp(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> u64 {
     let black = *bp | *bn | *bb | *br | *bq | *bk;
     let white = *wp | *wn | *wb | *wr | *wq | *wk;
     let empty = !(black | white);
@@ -198,14 +242,14 @@ fn convert_string_to_bitboard(binary:usize) -> u64 {
     let pmoves4 = *wp<<16 & empty & (empty<<8) & RANK_MASK[3];
     pmoves1 | pmoves2 | pmoves3 | pmoves4
 }*/
-fn possibility_wp(wpawn : u64, empty : u64, black : u64) -> u64 {
+pub fn possibility_wp(wpawn : u64, empty : u64, black : u64) -> u64 {
     let pmoves1 = wpawn<<7 & black & !RANK_MASK[7] & !FILE_MASKS[0];
     let pmoves2 = wpawn<<9 & black & !RANK_MASK[7] & !FILE_MASKS[7];
     let pmoves3 = wpawn<<8 & empty & !RANK_MASK[7];
     let pmoves4 = wpawn<<16 & empty & (empty<<8) & RANK_MASK[3];
     pmoves1 | pmoves2 | pmoves3 | pmoves4
 }
-fn _possibility_bp(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> u64 {
+/*pub fn _possibility_bp(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> u64 {
     let black = *bp | *bn | *bb | *br | *bq | *bk;
     let white = *wp | *wn | *wb | *wr | *wq | *wk;
     let empty = !(black | white);
@@ -215,8 +259,8 @@ fn _possibility_bp(wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u
     let pmoves3 = *bp>>8 & empty & !RANK_MASK[0];
     let pmoves4 = *bp>>16 & empty & (empty>>8) & RANK_MASK[4];
     pmoves1 | pmoves2 | pmoves3 | pmoves4
-}
-fn possibility_bp2( bpawn: u64, empty : u64, white : u64) -> u64 {
+}*/
+pub fn possibility_bp2( bpawn: u64, empty : u64, white : u64) -> u64 {
 
     let pmoves1 = bpawn>>7 & white & !RANK_MASK[0] & !FILE_MASKS[7];
     let pmoves2 = bpawn>>9 & white & !RANK_MASK[0] & !FILE_MASKS[0];
@@ -225,7 +269,7 @@ fn possibility_bp2( bpawn: u64, empty : u64, white : u64) -> u64 {
     pmoves1 | pmoves2 | pmoves3 | pmoves4
 }
 
-fn possibility_n(knight : u64) -> u64 {
+pub fn possibility_n(knight : u64) -> u64 {
     let nonoea:u64 =  (knight << 17) & !FILE_A ;
     let noeaea:u64 =  (knight << 10) & !FILE_AB;
     let soeaea:u64 =  (knight >>  6) & !FILE_AB;
@@ -237,14 +281,14 @@ fn possibility_n(knight : u64) -> u64 {
     nonoea | noeaea | soeaea | sosoea | nonowe | nowewe | sowewe | sosowe
 }
 
-fn possibility_k(mut wk : u64) -> u64 {
+pub fn possibility_k(mut wk : u64) -> u64 {
     let mut attack = wk<<1 | wk>>1;
     wk |= attack;
     attack |= wk<<8 | wk>>8;
     attack
 }
 
-fn hyperbola_quintessence(occupied : u64, mask: u64, mut number : u64) -> u64 {
+pub fn hyperbola_quintessence(occupied : u64, mask: u64, mut number : u64) -> u64 {
     number = 1<<number;
     let mut forward = occupied & mask ;
     let mut reverse = forward.swap_bytes();
@@ -256,17 +300,15 @@ fn hyperbola_quintessence(occupied : u64, mask: u64, mut number : u64) -> u64 {
     //( - 2 * number) ^ ((occupied & mask).swap_bytes() - 2 * number.swap_bytes()).swap_bytes()
     //(occupied - 2 * number) ^ (occupied.reverse_bits() - 2 * number.reverse_bits()).reverse_bits()
 }
-fn rank_attacks(occupied: u64, sq: u64) -> u64 {
+pub fn rank_attacks(occupied: u64, sq: u64) -> u64 {
     
     let f = sq & 7; // sq.file() as Bitboard;
     let r = sq & !7; // (sq.rank() * 8) as Bitboard;
     let o = (occupied >> (r + 1)) & 63;
     FIRST_RANK_ATTACKS[o as usize][f as usize] << r
 }
-fn convert_move_to_bitboard(moves : &str) -> (u64, u64) {
-    /*if moves.len() != 4 {
-        return;
-    }*/
+pub fn convert_move_to_bitboard(moves : &str) -> (u64, u64) {
+    
     let mut iter1 = moves[0..4].chars();
     let un = iter1.next().unwrap() as u64-96;
     let deux = iter1.next().unwrap() as u64-48;
@@ -277,7 +319,7 @@ fn convert_move_to_bitboard(moves : &str) -> (u64, u64) {
     (a,b)
 }
 
-fn compute_move_w(mut a:u64, mut b:u64, game : &mut Game) -> bool {
+pub fn compute_move_w(mut a:u64, mut b:u64, game : &mut Game) -> bool {
     let black = game.bp | game.bn | game.bb | game.br | game.bq | game.bk;
     let white = game.wp | game.wn | game.wb | game.wr | game.wq | game.wk;
     let occupied = black | white;
@@ -312,7 +354,7 @@ fn compute_move_w(mut a:u64, mut b:u64, game : &mut Game) -> bool {
         from = &mut game.wq;
     }
     else if game.wk & a != 0 {
-        println!("{square_b} {} {} {}", game.wking_never_move, game.wking_rook_never_move, game.wqueen_rook_never_move);
+        //println!("{square_b} {} {} {}", game.wking_never_move, game.wking_rook_never_move, game.wqueen_rook_never_move);
         if square_b == 2 { // Grand roque
             //check if the king and the rook has never move
             if game.wking_never_move && game.wking_rook_never_move && (black | white) & (2u64.pow(1) + 2u64.pow(2)) == 0 && possibility_b(game) & (2u64.pow(58) + 2u64.pow(57)) == 0 {
@@ -361,18 +403,18 @@ fn compute_move_w(mut a:u64, mut b:u64, game : &mut Game) -> bool {
     }
 }
 
-fn diag_antid_moves(square : u64, occupied : u64) -> u64 {
+pub fn diag_antid_moves(square : u64, occupied : u64) -> u64 {
     let a = hyperbola_quintessence(occupied, DIAG_MASKS[((square/8) + (square%8)) as usize], square) | hyperbola_quintessence(occupied, ANTIDIAG_MASKS[((square/8)+7 - (square%8)) as usize], square);
     //draw_bitboard(a);
     a
 }
-fn hv_moves(square : u64, occupied : u64) -> u64 {
+pub fn hv_moves(square : u64, occupied : u64) -> u64 {
     
     let b = hyperbola_quintessence(occupied, FILE_MASKS[(square % 8) as usize], square);
     rank_attacks(occupied, square) | b
 }
-fn compute_move_b(mut a : u64, mut b: u64, game :&mut Game) -> bool {
-//fn compute_move_b(mut a : u64, mut b: u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> bool {
+pub fn compute_move_b(mut a : u64, mut b: u64, game :&mut Game) -> bool {
+//pub fn compute_move_b(mut a : u64, mut b: u64, wp:&mut u64, wn:&mut u64, wb:&mut u64, wr:&mut u64, wq:&mut u64, wk:&mut u64, bp:&mut u64, bn:&mut u64, bb:&mut u64, br:&mut u64, bq:&mut u64, bk:&mut u64) -> bool {
     let black = game.bp | game.bn | game.bb | game.br | game.bq | game.bk;
     let white = game.wp | game.wn | game.wb | game.wr | game.wq | game.wk;
     let square_a = a;
@@ -405,11 +447,11 @@ fn compute_move_b(mut a : u64, mut b: u64, game :&mut Game) -> bool {
         from = &mut game.bq;
     }
     else if game.bk & a != 0 {
-        println!("{square_b} {} {} {}", game.bking_never_move, game.bking_rook_never_move, game.bqueen_rook_never_move);
+        //println!("{square_b} {} {} {}", game.bking_never_move, game.bking_rook_never_move, game.bqueen_rook_never_move);
         if square_b == 58 { // Grand roque
             //check if the king and the rook has never move
             if game.bking_never_move && game.bking_rook_never_move && (black | white) & (2u64.pow(58) + 2u64.pow(57)) == 0 && possibility_w(game) & (2u64.pow(58) + 2u64.pow(57)) == 0 {
-                println!("Grand roque");
+                //println!("Grand roque");
                 game.bking_never_move = false;
                 game.bking_rook_never_move = false;
                 //Do grand roque
@@ -454,7 +496,7 @@ fn compute_move_b(mut a : u64, mut b: u64, game :&mut Game) -> bool {
         false
     }
 }
-fn possibility_w( game : &Game) -> u64 {
+pub fn possibility_w( game : &Game) -> u64 {
     let black = game.bp | game.bn | game.bb | game.br | game.bq | game.bk;
     let white = game.wp | game.wn | game.wb | game.wr | game.wq | game.wk;
     let occupied = black | white;
@@ -487,12 +529,12 @@ fn possibility_w( game : &Game) -> u64 {
     }
     
     if game.wq != 0 {
-        attack |= (hv_moves(game.wq.tzcnt() as u64, occupied) | diag_antid_moves(game.wq.tzcnt() as u64, occupied)) & !white;
+        attack |= (hv_moves(game.wq.tzcnt(), occupied) | diag_antid_moves(game.wq.tzcnt(), occupied)) & !white;
     }
     //Manque le roi
     attack
 }
-fn possibility_b( game : &Game) -> u64 {
+pub fn possibility_b( game : &Game) -> u64 {
     let black = game.bp | game.bn | game.bb | game.br | game.bq | game.bk;
     let white = game.wp | game.wn | game.wb | game.wr | game.wq | game.wk;
     let occupied = black | white;
@@ -528,11 +570,11 @@ fn possibility_b( game : &Game) -> u64 {
     }
     attack
 }
-fn _copy_bitboard(wp:&u64, wn:&u64, wb:&u64, wr:&u64, wq:&u64, wk:&u64, bp:&u64, bn:&u64, bb:&u64, br:&u64, bq:&u64, bk:&u64) -> (u64, u64, u64, u64, u64, u64, u64, u64, u64, u64, u64, u64){
+pub fn _copy_bitboard(wp:&u64, wn:&u64, wb:&u64, wr:&u64, wq:&u64, wk:&u64, bp:&u64, bn:&u64, bb:&u64, br:&u64, bq:&u64, bk:&u64) -> (u64, u64, u64, u64, u64, u64, u64, u64, u64, u64, u64, u64){
     (*wp, *wn, *wb, *wr, *wq, *wk, *bp, *bn, *bb, *br, *bq, *bk)
 }
 
-fn is_attacked(target_is_wking : bool, game : &Game) -> bool {
+pub fn is_attacked(target_is_wking : bool, game : &Game) -> bool {
     if target_is_wking {
         possibility_b(game) & game.wk != 0
     }
@@ -541,7 +583,7 @@ fn is_attacked(target_is_wking : bool, game : &Game) -> bool {
     }
 }
 
-fn get_legal_move(side_w : bool, game : &Game) -> Vec<(u64, Piece)> {
+pub fn get_legal_move(side_w : bool, game : &Game) -> Vec<(u64, Piece)> {
     //let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
     let black = game.bp | game.bn | game.bb | game.br | game.bq | game.bk;
     let white = game.wp | game.wn | game.wb | game.wr | game.wq | game.wk;
@@ -549,14 +591,30 @@ fn get_legal_move(side_w : bool, game : &Game) -> Vec<(u64, Piece)> {
     let mut legal_moves = Vec::<(u64, Piece)>::new();
     if side_w { //White Possibility
         //Pions Possibility
-
+        let mut wp_test = game.wp;
+        while  wp_test != 0 {
+            let piece = wp_test.trailing_zeros() as u64;
+            let wp_extract = 1u64 << piece;
+            wp_test = wp_test & (wp_test-1);
+            let mut possi_wp = possibility_bp2(wp_extract, !(occupied), black);
+            while possi_wp != 0 {
+                let mut game1 = game.clone();
+                let b = possi_wp.trailing_zeros() as u64;
+                compute_move_w(piece, b, &mut game1);
+                let is_check = is_attacked(true, &game1);
+                if !is_check {
+                    legal_moves.push(((piece<<8) + b, Piece::PAWN));
+                }
+                possi_wp = possi_wp & (possi_wp - 1);
+            }
+        }
         //Knight
         //let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
         let mut wn_test = game.wn;
         while wn_test != 0 {
             let piece = wn_test.tzcnt();
             let wn_extract = (1 << piece) as u64;
-            wn_test = wn_test & wn_test - 1;
+            wn_test = wn_test & (wn_test - 1);
             let mut wn_possi = possibility_n( wn_extract) & !white;
             while wn_possi != 0 {
                 //let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
@@ -567,7 +625,7 @@ fn get_legal_move(side_w : bool, game : &Game) -> Vec<(u64, Piece)> {
                 if !is_check {
                     legal_moves.push(((piece<<8) + b, Piece::KNIGHT));
                 }
-                wn_possi = wn_possi & wn_possi - 1;
+                wn_possi = wn_possi & (wn_possi - 1);
             }
         }
         
@@ -575,7 +633,7 @@ fn get_legal_move(side_w : bool, game : &Game) -> Vec<(u64, Piece)> {
         let mut wb_test = game.wb;
         while wb_test != 0 {
             let piece = wb_test.tzcnt();
-            wb_test = wb_test & wb_test - 1;
+            wb_test = wb_test & (wb_test - 1);
             let mut wb_possi = diag_antid_moves(piece, occupied) & !white;
             while wb_possi != 0 {
                 //let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
@@ -586,14 +644,14 @@ fn get_legal_move(side_w : bool, game : &Game) -> Vec<(u64, Piece)> {
                 if !is_check {
                     legal_moves.push(((piece<<8) + b, Piece::BISHOP));
                 }
-                wb_possi = wb_possi & wb_possi - 1;
+                wb_possi = wb_possi & (wb_possi - 1);
             }
         }
         //Rook
         let mut wr_test = game.wr;
         while wr_test != 0 {
             let piece = wr_test.tzcnt();
-            wr_test = wr_test & wr_test - 1;
+            wr_test = wr_test & (wr_test - 1);
             let mut wr_possi = hv_moves(piece, occupied) & !white;
             while wr_possi != 0 {
                 //let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
@@ -604,14 +662,14 @@ fn get_legal_move(side_w : bool, game : &Game) -> Vec<(u64, Piece)> {
                 if !is_check {
                     legal_moves.push(((piece<<8) + b, Piece::BISHOP));
                 }
-                wr_possi = wr_possi & wr_possi - 1;
+                wr_possi = wr_possi & (wr_possi - 1);
             }
         }
 
         //Queen
         if game.wq != 0 {
             let piece = game.wq.tzcnt();
-            let mut wq_possi = hv_moves(piece as u64, occupied) | diag_antid_moves(piece as u64, occupied);
+            let mut wq_possi = (hv_moves(piece, occupied) | diag_antid_moves(piece, occupied)) & !white;
             while wq_possi != 0 {
                 //let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
                 let mut game1 = game.clone();
@@ -621,11 +679,11 @@ fn get_legal_move(side_w : bool, game : &Game) -> Vec<(u64, Piece)> {
                 if !is_check {
                     legal_moves.push(((piece<<8) + b, Piece::QUEEN));
                 }
-                wq_possi = wq_possi & wq_possi - 1;
+                wq_possi = wq_possi & (wq_possi - 1);
             }
         }
         //King
-        let mut possi_wk = possibility_k(game.wk) & !black;
+        let mut possi_wk = possibility_k(game.wk) & !white;
         while possi_wk != 0 {
             //let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
             let mut game1 = game.clone();
@@ -635,7 +693,7 @@ fn get_legal_move(side_w : bool, game : &Game) -> Vec<(u64, Piece)> {
             if !is_check {
                 legal_moves.push((((game.bk.trailing_zeros() as u64)<<8) + b, Piece::KING));
             }
-            possi_wk = possi_wk & possi_wk - 1;
+            possi_wk = possi_wk & (possi_wk - 1);
         }
     }
     else { //Black Possiblity
@@ -644,13 +702,30 @@ fn get_legal_move(side_w : bool, game : &Game) -> Vec<(u64, Piece)> {
         /*
         let possi_wp = possibility_w(&mut devant, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
         */
+        let mut bp_test = game.bp;
+        while  bp_test != 0 {
+            let piece = bp_test.trailing_zeros() as u64;
+            let bp_extract = 1u64 << piece;
+            bp_test = bp_test & (bp_test-1);
+            let mut possi_bp = possibility_bp2(bp_extract, !(occupied), white);
+            while possi_bp != 0 {
+                let mut game1 = game.clone();
+                let b = possi_bp.trailing_zeros() as u64;
+                compute_move_b(piece, b, &mut game1);
+                let is_check = is_attacked(false, &game1);
+                if !is_check {
+                    legal_moves.push(((piece<<8) + b, Piece::PAWN));
+                }
+                possi_bp = possi_bp & (possi_bp - 1);
+            }
+        }
         //Knight
         //let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
         let mut bn_test = game.bn;
         while bn_test != 0 {
             let piece = bn_test.trailing_zeros() as u64;
-            let bn_extract = ((1 as u64) << piece) as u64;
-            bn_test = bn_test & bn_test-1;
+            let bn_extract = (1u64) << piece;
+            bn_test = bn_test & (bn_test-1);
             let mut bn_possi = possibility_n(bn_extract) & !black;
             while bn_possi != 0 {
                 //let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
@@ -661,7 +736,7 @@ fn get_legal_move(side_w : bool, game : &Game) -> Vec<(u64, Piece)> {
                 if !is_check {
                     legal_moves.push(((piece<<8) + b, Piece::KNIGHT));
                 }
-                bn_possi = bn_possi & bn_possi - 1;
+                bn_possi = bn_possi & (bn_possi - 1);
             }
         }
         
@@ -669,7 +744,7 @@ fn get_legal_move(side_w : bool, game : &Game) -> Vec<(u64, Piece)> {
         let mut bb_test = game.bb;
         while bb_test != 0 {
             let piece = bb_test.tzcnt();
-            bb_test = bb_test & bb_test - 1;
+            bb_test = bb_test & (bb_test - 1);
             let mut bb_possi = diag_antid_moves(piece, occupied) & !black;
             while bb_possi != 0 {
                 //let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
@@ -680,14 +755,14 @@ fn get_legal_move(side_w : bool, game : &Game) -> Vec<(u64, Piece)> {
                 if !is_check {
                     legal_moves.push(((piece<<8) + b, Piece::BISHOP));
                 }
-                bb_possi = bb_possi & bb_possi - 1;
+                bb_possi = bb_possi & (bb_possi - 1);
             }
         }
         //Rook
         let mut br_test = game.br;
         while br_test != 0 {
             let piece = br_test.tzcnt();
-            br_test = br_test & br_test - 1;
+            br_test = br_test & (br_test - 1);
             let mut br_possi = hv_moves(piece, occupied) & !black;
             while br_possi != 0 {
                 //let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
@@ -698,14 +773,14 @@ fn get_legal_move(side_w : bool, game : &Game) -> Vec<(u64, Piece)> {
                 if !is_check {
                     legal_moves.push(((piece<<8) + b, Piece::BISHOP));
                 }
-                br_possi = br_possi & br_possi - 1;
+                br_possi = br_possi & (br_possi - 1);
             }
         }
 
         //Queen
         if game.bq != 0 {
             let piece = game.bq.tzcnt();
-            let mut bq_possi = hv_moves(piece as u64, occupied) | diag_antid_moves(piece as u64, occupied);
+            let mut bq_possi = (hv_moves(piece, occupied) | diag_antid_moves(piece, occupied)) & !black;
             while bq_possi != 0 {
                 //let (mut wp, mut wn, mut wb, mut wr, mut wq, mut wk, mut bp, mut bn, mut bb, mut br, mut bq, mut bk) = copy_bitboard(wp1, wn1, wb1, wr1, wq1, wk1, bp1, bn1, bb1, br1, bq1, bk1);
                 let mut game1 = game.clone();
@@ -715,7 +790,7 @@ fn get_legal_move(side_w : bool, game : &Game) -> Vec<(u64, Piece)> {
                 if !is_check {
                     legal_moves.push(((piece<<8) + b, Piece::BISHOP));
                 }
-                bq_possi = bq_possi & bq_possi - 1;
+                bq_possi = bq_possi & (bq_possi - 1);
             }
         }
         
@@ -730,17 +805,19 @@ fn get_legal_move(side_w : bool, game : &Game) -> Vec<(u64, Piece)> {
             if !is_check {
                 legal_moves.push((((game.bk.trailing_zeros() as u64)<<8) + b, Piece::KING));
             }
-            possi_bk = possi_bk & possi_bk - 1;
+            possi_bk = possi_bk & (possi_bk - 1);
         }
     }
     legal_moves
 }
 
-fn print_custum_move(a_move : (u64,Piece)) {
+pub fn print_custum_move(a_move : (u64,Piece)) {
     let a = a_move.0>>8;
     let b = a_move.0 & 255;
-    //println!("{a} {b}");
     println!("{}{} {:?}", convert_square_to_move(a), convert_square_to_move(b), a_move.1);
+}
+pub fn convert_custum_move(the_move : (u64, Piece)) -> (u64, u64) {
+    (the_move.0>>8, the_move.0 & 255)
 }
 fn main() {
     let now = Instant::now();
@@ -775,56 +852,57 @@ fn main() {
     let mut game = Game {
         wp, wn, wb, wr, wq, wk,
         bp, bn, bb, br, bq, bk,
+        white_to_play : true,
         wking_never_move : true, wqueen_rook_never_move : true, wking_rook_never_move : true,
         bking_never_move : true, bqueen_rook_never_move : true, bking_rook_never_move : true,
     };
     
-    let mut white_to_play = true;
     //let moves = ["e2e3", "e7e6", "f1d3", "d8g5"];
     //let moves = ["b1c3","g8f6", "c3b1"];
     //let moves = ["e2e4","e7e5", "f2f4", "d2d4", "d7d5", "f1e2", "d8d6" ];
     //let moves = ["e2e4", "e7e5", "f1e2"];
     //let moves = ["e2e4", "e7e5", "d1h5", "b8c6", "h5f7"]; //Just Check
     //let moves = ["e2e4", "e7e5", "f1c4", "b8c6", "d1h5", "g8f6", "h5f7"]; //Bergé
-    let moves = ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5", "e1g1", "g8f6", "d1e2", "e8g8"]; // Test ROQUE
+    //let moves = ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5", "e1g1", "g8f6", "d1e2", "e8g8"]; // Test ROQUE
     draw_board(&game);
     //let now = Instant::now();
-    for m in moves {
-    //loop {
-        //let mut m = String::new();
-        if white_to_play { println!("WHITE : "); }
+    //for m in moves {
+    loop {
+        let mut m = String::new();
+        if game.white_to_play { println!("WHITE : "); }
         else { println!("BLACK : "); }
-        
-        //io::stdin().read_line(&mut m).unwrap();
-        println!("{m}");
+        let legal = get_legal_move(game.white_to_play, &game);
+        for x in legal {
+            print_custum_move(x);
+        }
+        io::stdin().read_line(&mut m).unwrap();
+        //println!("{m}");
         let (a,b) = convert_move_to_bitboard(&m);
         
         let now = Instant::now();
         
-        let response = if white_to_play {
+        let response = if game.white_to_play {
             compute_move_w(a, b, &mut game)
         }
         else {
             compute_move_b(a, b, &mut game)
         };
         
-        white_to_play ^= response;
-        let k_attacked =  is_attacked(white_to_play, &game);
-        let legal = get_legal_move(white_to_play, &game);
+        game.white_to_play ^= response;
+        let k_attacked =  is_attacked(game.white_to_play, &game);
+        let legal = get_legal_move(game.white_to_play, &game);
         println!(" {} nano seconde", now.elapsed().as_nanos());
         print!("Possibilité de ");
-        if white_to_play {
+        if game.white_to_play {
             println!("WHITE");
         }
         else {
             println!("BLACK");
         }
-        for x in legal {
-            print_custum_move(x);
-        }
+        
         if k_attacked {
             print!("CHECK");
-            if get_legal_move(white_to_play, &game).len() == 0 {
+            if get_legal_move(game.white_to_play, &game).len() == 0 {
                 print!(" MATE");
             }
             println!();
