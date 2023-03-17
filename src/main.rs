@@ -530,7 +530,7 @@ pub fn possibility_b( game : &Game) -> u64 {
     let occupied = black | white;
     let mut attack = 0;
 
-    attack |= attack_bp(game.wp, black);
+    attack |= attack_bp(game.bp, black);
 
     if game.bn != 0 {
         attack |= possibility_n(game.bn) & !black;
@@ -665,7 +665,7 @@ pub fn get_legal_move(side_w : bool, game : &Game) -> Vec<(u64, Piece)> {
                 let mut game1 = *game;
                 let b = wq_possi.tzcnt();
                 compute_move_w(piece, b, &mut game1);
-                let is_check = is_attacked(false, &game1);
+                let is_check = is_attacked(true, &game1);
                 if !is_check {
                     legal_moves.push(((piece<<8) + b, Piece::QUEEN));
                 }
@@ -679,9 +679,9 @@ pub fn get_legal_move(side_w : bool, game : &Game) -> Vec<(u64, Piece)> {
             let mut game1 = *game;
             let b = possi_wk.tzcnt();
             compute_move_w((game.wk).trailing_zeros() as u64, b, &mut game1);
-            let is_check = is_attacked(false, &game1);
+            let is_check = is_attacked(true, &game1);
             if !is_check {
-                legal_moves.push((((game.bk.trailing_zeros() as u64)<<8) + b, Piece::KING));
+                legal_moves.push((((game.wk.trailing_zeros() as u64)<<8) + b, Piece::KING));
             }
             possi_wk = possi_wk & (possi_wk - 1);
         }
@@ -851,7 +851,9 @@ fn main() {
     //let moves = ["e2e4", "e7e5", "f1c4", "b8c6", "d1h5", "g8f6", "h5f7"]; //Bergé
     //let moves = ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5", "e1g1", "g8f6", "d1e2", "e8g8"]; // Test ROQUE
     //let moves = ["e2e4", "b7b6", "d2d4", "c8a6", "f1a6", "h7h6", "d1f3", "b6b5", "a6b5", "a7a6", "b5a6", "h6h5", "e4e5", "h5h4", "f3a8", "b8a6", "a8d8", "e8d8", "g1f3", "h4h3", "g2h3"]; // Test ROQUE
-    let moves = ["e2e4", "b7b6", "d2d4", "c8a6", "f1a6", "b8a6", "f2f4", "d7d5", "e4e5", "b6b5", "c2c3", "c7c6", "f4f5", "g8h6", "g2g4", "h6g4", "d1g4", "h7h5", "g4h5", "h8h5", "g1f3", "h5h2", "h1h2", "d8d7", "h2h5", "d7f5", "h5f5", "e7e6", "f5f7", "f8e7", "f7g7", "e8f8", "g7h7", "a6b4", "h7h8", "f8f7", "h8a8", "b4c2", "e1f2", "e7d8", "a8d8", "f7e7", "d8g8", "a7a5", "c1g5", "e7d7", "g8g7", "d7c8", "g7a7"];
+    //let moves = ["e2e4", "b7b6", "d2d4", "c8a6", "f1a6", "b8a6", "f2f4", "d7d5", "e4e5", "b6b5", "c2c3", "c7c6", "f4f5", "g8h6", "g2g4", "h6g4", "d1g4", "h7h5", "g4h5", "h8h5", "g1f3", "h5h2", "h1h2", "d8d7", "h2h5", "d7f5", "h5f5", "e7e6", "f5f7", "f8e7", "f7g7", "e8f8", "g7h7", "a6b4", "h7h8", "f8f7", "h8a8", "b4c2", "e1f2", "e7d8", "a8d8", "f7e7", "d8g8", "a7a5", "c1g5", "e7d7", "g8g7", "d7c8", "g7a7"];
+    //let moves = ["e2e4", "g8f6", "b1c3", "c7c6", "d2d4", "d8a5", "e4e5", "f6e4", "c1d2", "e4f2"];
+    let moves = ["e2e4", "e7e6", "d2d4", "b7b6", "c2c4", "f8b4", "c1d2", "b4d2", "d1d2", "d8h4", "g1f3", "h4e4", "f1e2", "e4g4", "e1g1", "c8b7", "h2h3", "g4f5", "b1c3", "a7a5", "a2a3", "b7f3", "e2f3", "c7c6", "c4c5", "b6c5", "d4c5", "f5c5", "a1d1", "a5a4", "c3e4", "c5e5", "e4d6", "e8e7", "d6b7", "e5c7", "b7c5", "d7d6", "c5e4", "b8a6", "e4d6", "e6e5", "d6f5", "e7f6", "g2g4", "g7g6", "f5h4", "g6g5", "d2g5", "f6g5", "h4g2", "g8f6", "h3h4", "g5g6", "h4h5"];
     draw_board(&game);
     //let now = Instant::now();
     for m in moves {
@@ -889,11 +891,11 @@ fn main() {
             println!();
         }
         draw_board(&game);
+        let legal = get_legal_move(game.white_to_play, &game);
+        for x in legal {
+            print_custum_move(x);
+        }
         println!("{response}");
     }
 
-    _draw_bitboard(possibility_k(1u64<<convert_move_to_square("h4h2").0));
-    println!("{}", possibility_k(1u64<<convert_move_to_square("h4h2").0).count_ones());
-    //println!("{} nano seconde", now.elapsed().as_nanos());
-    //draw_board(&mut wp, &mut wn, &mut wb, &mut wr, &mut wq, &mut wk, &mut bp, &mut bn, &mut bb, &mut br, &mut bq, &mut bk);
 }
