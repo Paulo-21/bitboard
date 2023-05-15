@@ -234,7 +234,7 @@ pub fn _draw_board(game : &Game) {
     chess_board.reverse();
     for (i, x) in chess_board.iter().enumerate() {
         println!("     ---------------------------------");
-        print!("   {} ", i+1);
+        print!("   {} ", 7-i+1);
         for c in x {
             print!("| {c} ");
         }
@@ -400,7 +400,6 @@ pub fn compute_move_w(chessmove : (u64, u64, Piece), game : &mut Game) -> i8 {
         }
     }
     else if game.wq & a != 0 {
-        println!("ee");
         let occupied = black | white;
         moves = (hv_moves(square_a, occupied) | diag_antid_moves(square_a, occupied)) & !white;
         
@@ -455,7 +454,7 @@ pub fn compute_move_w(chessmove : (u64, u64, Piece), game : &mut Game) -> i8 {
         0
     }
     else {
-        -2
+        -1
     }
 }
 
@@ -598,7 +597,7 @@ pub fn possibility_b( game : &Game) -> u64 {
     let occupied = black | white;
     let mut attack = 0;
 
-    attack |= attack_bp(game.bp, black);
+    attack |= attack_bp(game.bp, white);
 
     if game.bn != 0 {
         attack |= possibility_n(game.bn) & !black;
@@ -683,6 +682,7 @@ pub fn get_legal_move(side_w : bool, game : &Game) -> VecDeque<(u64, Piece)> {
                 let b = wn_possi.tzcnt();
                 let capture = compute_move_w((piece, b, Piece::NONE), &mut game1);
                 let is_check = is_attacked(true, &game1);
+                
                 if !is_check {
                     if capture > 0 {
                         legal_moves.push_front(((piece<<9) + (b<<1), Piece::KNIGHT));
@@ -771,6 +771,8 @@ pub fn get_legal_move(side_w : bool, game : &Game) -> VecDeque<(u64, Piece)> {
             let b = possi_wk.tzcnt();
             let capture = compute_move_w((game.wk.tzcnt(), b, Piece::NONE), &mut game1);
             let is_check = is_attacked(true, &game1);
+            _draw_board(&game1);
+            println!("CHECK : {}", is_check);
             if !is_check {
                 if capture > 0 {
                     legal_moves.push_front(((game.wk.tzcnt() <<9) + (b<<1), Piece::KING));
@@ -1026,8 +1028,9 @@ fn main() {
     //let moves = ["b2b3", "e7e6", "c1b2", "d8g5", "e2e4", "b8c6", "g1f3", "g5g4", "b1c3", "f8c5", "h2h3", "g4g6", "d1e2", "g6h6", "e1c1"];
     //let moves = ["b2b3", "e7e6", "c1b2", "d8g5", "e2e4", "b8c6", "g1f3", "g5g4", "g2g3", "g4e4", "f1e2", "a7a5", "e1g1", "e4f5", "d2d4", "c6b4", "e2d3", "f5g4", "a2a3", "b4d5", "f1e1", "d5f4", "e1e4", "f4h3", "g1f1", "h3f2", "f1f2", "g4h5", "d4d5", "h5d5", "e4e5", "d5c6", "c2c4", "g8h6", "h2h4", "h6g4", "f2g2", "g4e5", "g2h3", "c6f3", "b1c3", "f3d3", "d1d3", "e5d3", "c3e4", "d3b2", "a1f1", "f8a3", "e4g5", "f7f5", "h4h5", "a5a4", "f1a1", "a4b3", "h3h4", "h7h6", "g5f3", "a3e7", "h4h3", "a8a1", "f3d2", "a1a3", "c4c5", "e7c5", "g3g4", "h8f8", "g4f5", "c5b4", "f5e6", "b4d2", "e6d7"];
     //let moves = ["e2e4", "g2h1q"];
-    let moves = ["e2e4", "e7e5q", "g1f3", "d8f6", "b1c3", "f6f4", "d2d4", "f4g4", "f3e5", "g4e6", "f2f4", "f8b4", "c1d2", "e6e7", "f1d3", "b7b6q", "e1g1", "c7c6q", "f4f5", "e7d6", "e5g4", "d6d4", "g1h1", "h7h5q", "d2e3", "d4d6", "e4e5", "d6c7", "f5f6", "h5g4q", "f6g7", "h8h5", "d1g4", "c7e5", "e3f4", "e5c5", "d3e2", "h5f5", "g4h4", "b4c3", "b2c3", "c5c3", "h4h8", "f5f4", "h8g8", "e8e7", "g8f8", "e7e6", "g7g8q", "c3h8", "f8e8", "e6d5", "g8g5"];
-    
+    //let moves = ["e2e4", "e7e5q", "g1f3", "d8f6", "b1c3", "f6f4", "d2d4", "f4g4", "f3e5", "g4e6", "f2f4", "f8b4", "c1d2", "e6e7", "f1d3", "b7b6q", "e1g1", "c7c6q", "f4f5", "e7d6", "e5g4", "d6d4", "g1h1", "h7h5q", "d2e3", "d4d6", "e4e5", "d6c7", "f5f6", "h5g4q", "f6g7", "h8h5", "d1g4", "c7e5", "e3f4", "e5c5", "d3e2", "h5f5", "g4h4", "b4c3", "b2c3", "c5c3", "h4h8", "f5f4", "h8g8", "e8e7", "g8f8", "e7e6", "g7g8q", "c3h8", "f8e8", "e6d5", "g8g5"];
+    //let moves = ["d2d4", "e7e6q", "e2e4", "d8f6", "e4e5", "f6f5", "f1d3"];
+    let moves = ["e2e4", "e7e5", "b1c3", "b8c6", "g1f3", "g8f6", "a2a3", "d7d5", "f1b5", "f6e4", "c3e4", "d5e4", "f3e5", "d8g5", "d2d4", "g5g2", "e1d2", "f7f6", "e5c6", "g2g5"];
     _draw_board(&game);
     //let now = Instant::now();
     for m in moves {
